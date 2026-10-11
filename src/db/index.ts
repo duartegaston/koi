@@ -1,19 +1,40 @@
 import "server-only";
-import { neon } from "@neondatabase/serverless";
-import { drizzle, type NeonHttpDatabase } from "drizzle-orm/neon-http";
+import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import { getServerEnv } from "@/lib/env";
 import * as schema from "./schema";
 
-export type Database = NeonHttpDatabase<typeof schema>;
+export type Database = PostgresJsDatabase<typeof schema>;
 
 let db: Database | undefined;
 
+function sslOption(connectionString: string): "require" | false {
+  const url = new URL(connectionString);
+  const sslmode = url.searchParams.get("sslmode");
+  if (sslmode === "disable" || url.hostname === "localhost" || url.hostname === "127.0.0.1") {
+    return false;
+  }
+  return "require";
+}
+
 /**
- * Driver HTTP de Neon: cada query es un `fetch`, sin sockets TCP ni pool,
- * así que es seguro reutilizar la instancia entre requests en el Edge.
+ * PostgreSQL estándar vía postgres.js. `prepare: false` permite poolers en
+ * modo transaction (PgBouncer). `max: 1` porque cada isolate de Workers
+ * no debe abrir un pool propio.
  */
 export function getDb(): Database {
-  db ??= drizzle({ client: neon(getServerEnv().DATABASE_URL), schema });
+  if (!db) {
+    const connectionString = getServerEnv().DATABASE_URL;
+    const client = postgres(connectionString, {
+      max: 1,
+      prepare: false,
+      fetch_types: false,
+      ssl: sslOption(connectionString),
+      connect_timeout: 10,
+    });
+    db = drizzle({ client, schema });
+  }
+
   return db;
 }
 

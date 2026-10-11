@@ -1,0 +1,15 @@
+---
+description: Consultar documentación actual con Context7 antes de generar código de librerías
+alwaysApply: true
+---
+
+# Context7
+
+Para documentación, referencias de API o código de paquetes externos, leé la doc actual con el MCP de Context7. No uses solo datos de entrenamiento.
+
+Aplica a Next.js, Drizzle, PostgreSQL, Resend, Cloudflare, Tailwind y Zod.
+
+1. `resolve-library-id` con el nombre del paquete y la pregunta completa.
+2. Elegí el ID oficial (y el de la versión del repo si existe: Next.js 15, React 19).
+3. `query-docs` con ese `libraryId` y la pregunta.
+4. Escribí el código a partir de esa documentación.

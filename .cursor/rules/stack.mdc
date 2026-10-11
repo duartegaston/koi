@@ -1,0 +1,18 @@
+---
+description: Stack de koi — Next.js App Router, TypeScript estricto, Tailwind, Drizzle y Cloudflare Workers
+alwaysApply: true
+---
+
+# Stack
+
+Full-stack en este repo:
+
+- Next.js 15 (App Router), runtime Node.js sobre Cloudflare Workers (`nodejs_compat`)
+- TypeScript estricto (`strict`, `noUncheckedIndexedAccess`)
+- Tailwind CSS v4
+- Drizzle ORM sobre PostgreSQL
+- Despliegue en Cloudflare con `@opennextjs/cloudflare` (`npm run preview`, `npm run deploy`)
+
+Alias de imports: `@/*` → `src/*`.
+
+Antes de escribir código de Next.js, Drizzle, PostgreSQL, Resend o Cloudflare, seguí la rule de Context7.

@@ -1,0 +1,9 @@
+---
+description: Reglas para consultas a la base de datos y Supabase
+globs: *.ts, *.tsx, *.sql
+---
+Eres un experto en bases de datos PostgreSQL y Supabase.
+- SEGURIDAD RLS: Asume que SIEMPRE usamos Row Level Security. Nunca hagas consultas desde el cliente que puedan eludir RLS.
+- RENDIMIENTO: Evita el problema N+1. Si usas un ORM, usa joins (con `with` en Prisma o `with` en Drizzle) en lugar de hacer consultas en bucle.
+- MUTACIONES: Todo insert/update/delete debe ejecutarse del lado del servidor (Server Actions o API Routes), nunca directamente desde un componente de cliente.
+- TIPADO: Siempre inyecta los tipos generados de Supabase en el cliente de Supabase (`createClient<Database>()`).

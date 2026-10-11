@@ -9,9 +9,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "pages:build": "npx @cloudflare/next-on-pages",
-    "preview": "npm run pages:build && wrangler pages dev",
-    "deploy": "npm run pages:build && wrangler pages deploy",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv env.d.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
@@ -19,9 +18,10 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^1.0.0",
+    "@opennextjs/cloudflare": "^1.20.10",
     "drizzle-orm": "^0.45.0",
-    "next": "15.5.2",
+    "next": "^15.5.27",
+    "postgres": "^3.4.7",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "resend": "^6.0.0",
@@ -29,8 +29,7 @@
     "zod": "^4.0.0"
   },
   "devDependencies": {
-    "@cloudflare/next-on-pages": "^1.13.16",
-    "@cloudflare/workers-types": "^4.20260702.1",
+    "@cloudflare/workers-types": "^5.20261006.1",
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^22",
@@ -38,10 +37,9 @@
     "@types/react-dom": "^19",
     "drizzle-kit": "^0.31.0",
     "eslint": "^9",
-    "eslint-config-next": "15.5.2",
+    "eslint-config-next": "^15.5.27",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vercel": "47.0.4",
-    "wrangler": "~4.107.1"
+    "wrangler": "^4.148.0"
   }
 }

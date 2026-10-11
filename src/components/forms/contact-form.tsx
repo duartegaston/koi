@@ -7,14 +7,35 @@ import { InputField, TextareaField } from "@/components/ui/field";
 
 const initialState: ContactFormState = { status: "idle" };
 
+function safeWhatsAppUrl(value: string): string | null {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:" || url.hostname !== "wa.me") return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
 export function ContactForm() {
   const [state, formAction, isPending] = useActionState(submitContact, initialState);
 
   if (state.status === "success") {
+    const whatsAppUrl = safeWhatsAppUrl(state.whatsAppUrl);
     return (
-      <p role="status" className="rounded-md bg-emerald-50 p-4 text-emerald-800">
-        {state.message}
-      </p>
+      <div role="status" className="space-y-4">
+        <p className="rounded-md bg-emerald-50 p-4 text-emerald-800">{state.message}</p>
+        {whatsAppUrl ? (
+          <a
+            href={whatsAppUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-10 w-full items-center justify-center rounded-md bg-zinc-900 px-4 text-sm font-medium text-white transition-colors hover:bg-zinc-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+          >
+            Enviar pedido por WhatsApp
+          </a>
+        ) : null}
+      </div>
     );
   }
 

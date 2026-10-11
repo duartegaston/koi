@@ -1,10 +1,20 @@
 name = "koi"
+main = ".open-next/worker.js"
 compatibility_date = "2025-01-01"
-compatibility_flags = ["nodejs_compat"]
-pages_build_output_dir = ".vercel/output/static"
+compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
 
-# Variables no sensibles. Los secretos (DATABASE_URL, RESEND_API_KEY,
-# WHATSAPP_ACCESS_TOKEN, ...) se cargan con `wrangler pages secret put <NAME>`
-# o desde el dashboard de Cloudflare Pages.
+# OpenNext sirve los assets estáticos desde este binding.
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
+# Lo pide el starter de OpenNext para revalidación y rutas internas.
+[[services]]
+binding = "WORKER_SELF_REFERENCE"
+service = "koi"
+
+# Variables no sensibles. Los secretos (DATABASE_URL, RESEND_API_KEY, EMAIL_FROM,
+# WHATSAPP_NUMBER) se cargan con `wrangler secret put <NAME>`
+# o desde el dashboard de Cloudflare.
 [vars]
 APP_URL = "http://localhost:3000"

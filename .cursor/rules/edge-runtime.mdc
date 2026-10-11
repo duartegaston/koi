@@ -1,0 +1,17 @@
+---
+description: Runtime de Cloudflare con OpenNext y el driver postgres
+globs: src/**/*.{ts,tsx},next.config.mjs,wrangler.toml,open-next.config.ts
+alwaysApply: false
+---
+
+# Cloudflare
+
+El deploy es un Worker de Cloudflare con `@opennextjs/cloudflare` (runtime Node.js de Next, no Edge). No agregues `export const runtime = "edge"`: OpenNext no lo soporta.
+
+`postgres` está en `serverExternalPackages` para que Workers use el export `workerd` del paquete. No lo saques y no uses `@neondatabase/serverless`.
+
+La base es PostgreSQL estándar vía `DATABASE_URL`.
+
+En Cloudflare leé secretos con `getServerEnv()` (`getCloudflareContext().env`).
+
+No uses `fs` ni otros builtins que Workers no implementa. El driver `postgres` es la excepción, porque habla el protocolo de PostgreSQL.

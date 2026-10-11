@@ -3,6 +3,7 @@ node_modules/
 
 # next / cloudflare
 .next/
+.open-next/
 out/
 .vercel/
 .wrangler/

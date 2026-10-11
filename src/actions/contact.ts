@@ -1,16 +1,16 @@
 "use server";
 
 import { z } from "zod";
-import { getDb, schema } from "@/db";
+import { insertContactMessage } from "@/data-access/contact.repository";
 import { sendEmail } from "@/lib/email/resend";
 import { contactConfirmationEmail } from "@/lib/email/templates";
 import { getServerEnv } from "@/lib/env";
 import { contactSchema, type ContactInput } from "@/lib/validations/contact";
-import { sendWhatsAppTemplate } from "@/lib/whatsapp/client";
+import { contactWhatsAppText, whatsAppLink } from "@/lib/whatsapp/link";
 
 export type ContactFormState =
   | { status: "idle" }
-  | { status: "success"; message: string }
+  | { status: "success"; message: string; whatsAppUrl: string }
   | {
       status: "error";
       message: string;
@@ -39,42 +39,34 @@ export async function submitContact(
     };
   }
 
-  let contact;
+  const whatsAppUrl = whatsAppLink(
+    getServerEnv().WHATSAPP_NUMBER,
+    contactWhatsAppText(parsed.data),
+  );
+
+  let saved = false;
   try {
-    [contact] = await getDb()
-      .insert(schema.contactMessages)
-      .values(parsed.data)
-      .returning({
-        id: schema.contactMessages.id,
-        name: schema.contactMessages.name,
-        email: schema.contactMessages.email,
-        phone: schema.contactMessages.phone,
-        message: schema.contactMessages.message,
-      });
+    await insertContactMessage(parsed.data);
+    saved = true;
   } catch (error) {
     console.error("Error guardando mensaje de contacto", error);
   }
 
-  if (!contact) {
-    return { status: "error", message: "No pudimos guardar tu mensaje.", values: raw };
-  }
-
-  const { WHATSAPP_CONTACT_TEMPLATE } = getServerEnv();
-  const email = contactConfirmationEmail(contact);
-
-  // Las notificaciones no deben hacer fallar el envío ya persistido.
-  const results = await Promise.allSettled([
-    sendEmail({ to: contact.email, ...email }),
-    contact.phone && WHATSAPP_CONTACT_TEMPLATE
-      ? sendWhatsAppTemplate(contact.phone, WHATSAPP_CONTACT_TEMPLATE, [contact.name])
-      : Promise.resolve(null),
-  ]);
-
-  for (const result of results) {
-    if (result.status === "rejected") {
-      console.error("Error enviando notificación de contacto", result.reason);
+  if (saved) {
+    const email = contactConfirmationEmail(parsed.data);
+    const result = await Promise.allSettled([sendEmail({ to: parsed.data.email, ...email })]);
+    for (const item of result) {
+      if (item.status === "rejected") {
+        console.error("Error enviando email de contacto", item.reason);
+      }
     }
   }
 
-  return { status: "success", message: "¡Gracias! Recibimos tu mensaje." };
+  return {
+    status: "success",
+    message: saved
+      ? "Guardamos tu pedido. Enviá el mensaje por WhatsApp para que lo reciba el local."
+      : "No pudimos guardarlo en la base. Igual podés enviarlo por WhatsApp.",
+    whatsAppUrl,
+  };
 }

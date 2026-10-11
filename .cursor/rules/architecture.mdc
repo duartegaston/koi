@@ -1,0 +1,35 @@
+---
+description: RSC por defecto, Server Actions para mutaciones y mapa de carpetas de koi
+alwaysApply: true
+---
+
+# Arquitectura
+
+1. React Server Components por defecto. `"use client"` solo con hooks o eventos (formularios, `error.tsx`).
+2. Mutaciones en Server Actions de `src/actions/`: `"use server"`, validar con Zod, devolver un estado tipado para `useActionState`. Las actions no escriben SQL.
+3. Módulos solo de servidor importan `server-only`. Variables de entorno solo vía `getServerEnv()` en `src/lib/env.ts`.
+
+## Dónde va el código
+
+```
+src/app/                  # páginas, layouts, route handlers
+src/actions/              # controllers: validan input y llaman servicios
+src/services/             # lógica de negocio (stock, totales, envío, WhatsApp)
+src/data-access/          # consultas Drizzle. Sin reglas de negocio
+src/components/ui/        # primitivas sin estado, válidas en RSC
+src/components/forms/     # componentes con "use client"
+src/db/                   # getDb() y schema Drizzle
+src/lib/email/            # Resend y plantillas
+src/lib/whatsapp/         # links wa.me (ver rule de integraciones)
+src/lib/validations/      # Zod compartido cliente/servidor
+src/lib/utils.ts
+```
+
+No abras carpetas paralelas (`src/lib/db`, `src/utils`, `src/types`, `components/shared`) si el archivo encaja en este mapa.
+
+```tsx
+// src/app/contacto/page.tsx — Server Component
+export default function ContactPage() {
+  return <ContactForm />; // el form es el único "use client"
+}
+```

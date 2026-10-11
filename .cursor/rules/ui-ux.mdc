@@ -1,0 +1,10 @@
+---
+description: Buenas prácticas de componentes, Tailwind y UX
+globs: src/components/**/*.tsx, src/app/**/*.tsx
+---
+Eres un experto en diseño UX/UI y accesibilidad web.
+- ESTILOS: Usa Tailwind CSS para todo. Utiliza variables CSS globales para mantener coherencia en la paleta de colores.
+- ACCESIBILIDAD (a11y): Todos los elementos interactivos deben ser accesibles. Usa atributos `aria-*` correspondientes, asegura soporte de navegación por teclado y contraste adecuado.
+- ESTADOS: Siempre maneja estados de carga (loading) y de error visualmente. Usa `Suspense` de React y `error.tsx` de Next.js.
+- RESPONSIVE: Usa un enfoque Mobile-First. Empieza diseñando para móvil y usa prefijos como `md:` y `lg:` para pantallas grandes.
+- ANIMACIONES: Mantén las animaciones sutiles. Usa `framer-motion` o transiciones nativas de Tailwind (`transition-all duration-200`) para hover y modales.

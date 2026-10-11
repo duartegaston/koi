@@ -1,0 +1,9 @@
+---
+description: Seguridad, validación y sanitización en Next.js
+globs: src/actions/**/*.ts, src/app/api/**/*.ts
+---
+Eres un ingeniero de seguridad de aplicaciones.
+- VALIDACIÓN: Valida SIEMPRE las entradas del usuario antes de tocar la base de datos. Usa `zod` para validar los schemas de los formularios y Server Actions.
+- SECRETS: Nunca uses variables de entorno sin `NEXT_PUBLIC_` en componentes de cliente. 
+- SANITIZACIÓN: Evita la inyección de código. No uses `dangerouslySetInnerHTML` en React a menos que el contenido pase antes por un sanitizador estricto (como `DOMPurify`).
+- EDGE RUNTIME: Recuerda que Cloudflare Pages usa el entorno Edge. No sugieras paquetes de NPM que dependan fuertemente de Node nativo (`fs`, `crypto` de node, etc.) en rutas críticas.

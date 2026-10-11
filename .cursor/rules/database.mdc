@@ -1,0 +1,20 @@
+---
+description: PostgreSQL estándar con Drizzle y el driver postgres.js
+globs: src/db/**/*.ts,src/data-access/**/*.ts,src/actions/**/*.ts,drizzle.config.ts
+alwaysApply: false
+---
+
+# Base de datos
+
+PostgreSQL con Drizzle y el driver `postgres` (`drizzle-orm/postgres-js`). La conexión es `DATABASE_URL`. No uses `@neondatabase/serverless` ni un cliente de Neon.
+
+- Schema y tipos inferidos en `src/db/schema.ts`. Las consultas van en `src/data-access/` y reciben un `DbExecutor` opcional para compartir transacción. Migraciones con `npm run db:generate` y `npm run db:migrate`.
+- `getDb()` ya configura `max: 1`, `prepare: false` y `fetch_types: false`. No abras otro pool.
+- Consultas selectivas: columnas explícitas, filtros en SQL, sin N+1.
+
+```ts
+const rows = await getDb()
+  .select({ id: schema.contactMessages.id, email: schema.contactMessages.email })
+  .from(schema.contactMessages)
+  .where(eq(schema.contactMessages.email, email));
+```

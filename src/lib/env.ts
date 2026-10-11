@@ -1,5 +1,5 @@
 import "server-only";
-import { getRequestContext } from "@cloudflare/next-on-pages";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { z } from "zod";
 
 const serverEnvSchema = z.object({
@@ -7,11 +7,10 @@ const serverEnvSchema = z.object({
   DATABASE_URL: z.url(),
   RESEND_API_KEY: z.string().min(1),
   EMAIL_FROM: z.string().min(1),
-  WHATSAPP_ACCESS_TOKEN: z.string().min(1),
-  WHATSAPP_PHONE_NUMBER_ID: z.string().min(1),
-  WHATSAPP_VERIFY_TOKEN: z.string().min(1),
-  WHATSAPP_APP_SECRET: z.string().min(1),
-  WHATSAPP_CONTACT_TEMPLATE: z.string().min(1).optional(),
+  WHATSAPP_NUMBER: z
+    .string()
+    .trim()
+    .regex(/^[1-9]\d{7,14}$/, "WHATSAPP_NUMBER debe ser el teléfono internacional, solo dígitos"),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
@@ -20,7 +19,7 @@ let cached: ServerEnv | undefined;
 
 function readCloudflareEnv(): Partial<CloudflareEnv> {
   try {
-    return getRequestContext().env;
+    return getCloudflareContext().env;
   } catch {
     // Fuera de una request de Cloudflare (p. ej. `next build`).
     return {};
@@ -28,9 +27,9 @@ function readCloudflareEnv(): Partial<CloudflareEnv> {
 }
 
 /**
- * En Cloudflare `process.env` está vacío: las variables y secretos llegan como
- * bindings del contexto de la request, por eso se leen y validan de forma
- * perezosa y nunca al cargar el módulo.
+ * En Cloudflare `process.env` puede llegar vacío: las variables y secretos
+ * llegan como bindings del contexto de la request, por eso se leen y validan
+ * de forma perezosa y nunca al cargar el módulo.
  */
 export function getServerEnv(): ServerEnv {
   if (cached) return cached;
