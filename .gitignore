@@ -1,0 +1,19 @@
+# deps
+node_modules/
+
+# next / cloudflare
+.next/
+out/
+.vercel/
+.wrangler/
+next-env.d.ts
+*.tsbuildinfo
+
+# env
+.env
+.env*.local
+.dev.vars
+
+# misc
+.DS_Store
+npm-debug.log*
