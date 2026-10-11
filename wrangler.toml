@@ -1,0 +1,10 @@
+name = "koi"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = ".vercel/output/static"
+
+# Variables no sensibles. Los secretos (DATABASE_URL, RESEND_API_KEY,
+# WHATSAPP_ACCESS_TOKEN, ...) se cargan con `wrangler pages secret put <NAME>`
+# o desde el dashboard de Cloudflare Pages.
+[vars]
+APP_URL = "http://localhost:3000"
