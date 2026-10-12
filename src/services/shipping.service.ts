@@ -67,7 +67,7 @@ export async function quoteDelivery(address: string): Promise<ServiceResult<Deli
     return fail("address_not_found", "No encontramos esa dirección.");
   }
   if (!samePlace(place.city, store.city) || !samePlace(place.province, store.province)) {
-    return fail("outside_posadas", "Por ahora el envío en moto es solo dentro de Posadas, Misiones.");
+    return fail("outside_posadas", "Por ahora el envío es solo dentro de Posadas, Misiones.");
   }
 
   const kilometers = distanceKm(
@@ -78,7 +78,7 @@ export async function quoteDelivery(address: string): Promise<ServiceResult<Deli
   if (!zone) {
     return fail(
       "outside_delivery_zone",
-      "No llegamos con la moto a esa dirección. Podés retirar en el local.",
+      "No llegamos a esa dirección. Podés retirar en el local.",
     );
   }
 

@@ -2,9 +2,8 @@ import type { InputHTMLAttributes, TextareaHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 const controlClass =
-  "w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm outline-none transition " +
-  "focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200 aria-invalid:border-red-500 " +
-  "dark:border-zinc-700 dark:bg-zinc-900 dark:focus:ring-zinc-800";
+  "w-full border border-line bg-background px-3 py-2 text-sm outline-none transition " +
+  "focus:border-foreground aria-invalid:border-foreground";
 
 type FieldProps = {
   label: string;
@@ -13,15 +12,16 @@ type FieldProps = {
 };
 
 function FieldShell({ label, name, errors, children }: FieldProps & { children: React.ReactNode }) {
+  const error = errors?.[0];
   return (
     <div className="space-y-1.5">
       <label htmlFor={name} className="block text-sm font-medium">
         {label}
       </label>
       {children}
-      {errors?.length ? (
-        <p id={`${name}-error`} className="text-sm text-red-600">
-          {errors[0]}
+      {error ? (
+        <p id={`${name}-error`} className="text-sm text-foreground">
+          {error}
         </p>
       ) : null}
     </div>
@@ -42,7 +42,7 @@ export function InputField({
         name={name}
         aria-invalid={errors?.length ? true : undefined}
         aria-describedby={errors?.length ? `${name}-error` : undefined}
-        className={cn(controlClass, className)}
+        className={cn(controlClass, "h-11", className)}
         {...props}
       />
     </FieldShell>

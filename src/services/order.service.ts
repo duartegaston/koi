@@ -12,7 +12,7 @@ export type ApprovedOrder = {
 
 /**
  * Aprueba un pedido pendiente y descuenta el stock.
- * La moto se coordina aparte. No exponer esta función sin un admin autenticado.
+ * El envío se coordina aparte. No exponer esta función sin un admin autenticado.
  */
 export async function approveOrder(publicCode: string): Promise<ServiceResult<ApprovedOrder>> {
   const code = publicCode.trim();

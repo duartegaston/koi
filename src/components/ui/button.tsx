@@ -5,24 +5,15 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "primary" | "secondary";
 };
 
-const variants: Record<NonNullable<ButtonProps["variant"]>, string> = {
-  primary: "bg-zinc-900 text-white hover:bg-zinc-700 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200",
+export const buttonClass = {
+  primary:
+    "inline-flex h-12 items-center justify-center rounded-full bg-ink px-8 text-xs font-medium uppercase tracking-[0.16em] text-paper transition-colors hover:bg-ink/85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:pointer-events-none disabled:opacity-50",
   secondary:
-    "border border-zinc-300 bg-transparent hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800",
-};
+    "inline-flex h-12 items-center justify-center rounded-full border border-ink bg-transparent px-8 text-xs font-medium uppercase tracking-[0.16em] text-ink transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:pointer-events-none disabled:opacity-50",
+  inverse:
+    "inline-flex h-12 items-center justify-center rounded-full border border-paper bg-transparent px-8 text-xs font-medium uppercase tracking-[0.16em] text-paper transition-colors hover:bg-paper hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-paper disabled:pointer-events-none disabled:opacity-50",
+} as const;
 
 export function Button({ className, variant = "primary", type = "button", ...props }: ButtonProps) {
-  return (
-    <button
-      type={type}
-      className={cn(
-        "inline-flex h-10 items-center justify-center rounded-md px-4 text-sm font-medium transition-colors",
-        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500",
-        "disabled:pointer-events-none disabled:opacity-50",
-        variants[variant],
-        className,
-      )}
-      {...props}
-    />
-  );
+  return <button type={type} className={cn(buttonClass[variant], className)} {...props} />;
 }

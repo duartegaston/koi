@@ -1,11 +1,111 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+  --color-background: #f4f1eb;
+  --color-foreground: #1c1917;
+  --color-muted: #4a453f;
+  --color-line: #e3ddd4;
+  --color-surface: #e8e2d8;
+  --color-ink: #24211e;
+  --color-paper: #f7f4ef;
 }
 
 @layer base {
   body {
-    @apply bg-white text-zinc-900 antialiased dark:bg-zinc-950 dark:text-zinc-100;
+    @apply bg-background text-foreground antialiased;
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+  }
+
+  ::selection {
+    background: var(--color-ink);
+    color: var(--color-paper);
+  }
+}
+
+.cart-dialog,
+.menu-dialog {
+  margin: 0;
+  height: 100dvh;
+  max-height: 100dvh;
+  max-width: 100vw;
+  border: 0;
+  padding: 0;
+  background: var(--color-background);
+  color: var(--color-foreground);
+}
+
+.cart-dialog {
+  position: fixed;
+  inset: 0 0 0 auto;
+  width: min(100vw, 26rem);
+  border-left: 1px solid var(--color-line);
+}
+
+.menu-dialog {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: min(100vw, 20rem);
+  border-right: 1px solid var(--color-line);
+}
+
+.cart-dialog::backdrop,
+.menu-dialog::backdrop {
+  background: rgb(28 25 23 / 0.45);
+}
+
+.marquee-track {
+  animation: marquee 36s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    animation: none;
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cart-dialog {
+    animation: drawer-in 200ms ease;
+  }
+
+  .menu-dialog {
+    animation: menu-in 200ms ease;
+  }
+}
+
+@keyframes drawer-in {
+  from {
+    transform: translateX(1rem);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes menu-in {
+  from {
+    transform: translateX(-1rem);
+  }
+
+  to {
+    transform: translateX(0);
   }
 }

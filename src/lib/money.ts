@@ -26,3 +26,11 @@ export function addAmounts(left: string, right: string): string {
 export function multiplyAmount(unitPrice: string, quantity: number): string {
   return fromCents(toCents(unitPrice) * quantity);
 }
+
+export function formatArs(amount: string): string {
+  return new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: "ARS",
+    minimumFractionDigits: 2,
+  }).format(toCents(amount) / 100);
+}
