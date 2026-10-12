@@ -19,18 +19,25 @@ function sslOption(connectionString: string): "require" | false {
 
 /**
  * PostgreSQL estándar vía postgres.js. `prepare: false` permite poolers en
- * modo transaction (PgBouncer). `max: 1` porque cada isolate de Workers
- * no debe abrir un pool propio.
+ * modo transaction (PgBouncer). En producción `max` queda en 1: cada isolate
+ * de Workers no debe abrir un pool propio. En `next dev` un pool chico deja
+ * que Navbar, la página y un `Promise.all` usen conexiones distintas.
+ *
+ * `max_pipeline` tiene que ser 0. Con 1 el driver igual escribe la consulta
+ * en curso y una más en el mismo socket (`sent.length < max_pipeline`). El
+ * pooler de Supabase en el puerto 6543 no contesta y el request queda
+ * colgado cerca de 60 segundos. En 0 las consultas de más esperan en cola.
  */
 export function getDb(): Database {
   if (!db) {
     const connectionString = getServerEnv().DATABASE_URL;
     const client = postgres(connectionString, {
-      max: 1,
+      max: process.env.NODE_ENV === "development" ? 4 : 1,
       prepare: false,
       fetch_types: false,
       ssl: sslOption(connectionString),
       connect_timeout: 10,
+      max_pipeline: 0,
     });
     db = drizzle({ client, schema });
   }

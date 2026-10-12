@@ -14,7 +14,7 @@ export function Marquee({ items, tone = "paper" }: { items: string[]; tone?: "pa
       <p className="sr-only">{items.join(". ")}</p>
       <div className="marquee-track flex w-max">
         {[0, 1].map((copy) => (
-          <p key={copy} aria-hidden="true" className="pr-8 text-xs font-medium uppercase tracking-[0.28em]">
+          <p key={copy} aria-hidden="true" className="pr-8 font-label text-sm tracking-wide">
             {line}
           </p>
         ))}

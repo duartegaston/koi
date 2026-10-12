@@ -1,11 +1,20 @@
 import type { Metadata } from "next";
-import { Fraunces, Outfit } from "next/font/google";
-import { Footer } from "@/components/layout/footer";
-import { Navbar } from "@/components/layout/navbar";
+import { Josefin_Sans, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 
-const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit", display: "swap" });
-const fraunces = Fraunces({ subsets: ["latin"], variable: "--font-fraunces", display: "swap" });
+const label = Josefin_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-josefin",
+  display: "swap",
+});
+
+const publication = Source_Serif_4({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-source-serif",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: { default: "Koi", template: "%s | Koi" },
@@ -14,20 +23,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="es" className={`${outfit.variable} ${fraunces.variable}`}>
-      <body className="flex min-h-dvh flex-col font-sans">
-        <a
-          href="#contenido"
-          className="absolute top-4 left-4 z-50 -translate-y-24 rounded-full bg-ink px-4 py-2 text-sm text-paper focus:translate-y-0"
-        >
-          Saltar al contenido
-        </a>
-        <Navbar />
-        <main id="contenido" className="flex-1">
-          {children}
-        </main>
-        <Footer />
-      </body>
+    <html lang="es" className={`${label.variable} ${publication.variable}`}>
+      <body className="flex min-h-dvh flex-col font-sans">{children}</body>
     </html>
   );
 }

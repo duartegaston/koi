@@ -8,7 +8,7 @@ import { readCartSnapshot } from "@/lib/cart-session";
 
 export function Navbar() {
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-background">
+    <header className="sticky top-0 z-40 border-b border-paper/20 bg-ink text-paper">
       <Suspense fallback={<NavbarFallback />}>
         <NavbarContent />
       </Suspense>
@@ -21,8 +21,8 @@ async function NavbarContent() {
   const links = categories.map((category) => ({ name: category.name, slug: category.slug }));
 
   return (
-    <div className="flex h-[4.5rem] items-center gap-4 px-4 md:px-8">
-      <Wordmark />
+    <div className="flex h-20 items-center gap-4 px-4 md:px-8">
+      <Wordmark onInk withTagline priority />
       <div className="hidden flex-1 justify-center md:flex">
         <CategoryLinks categories={links} />
       </div>
@@ -36,9 +36,9 @@ async function NavbarContent() {
 
 function NavbarFallback() {
   return (
-    <div className="flex h-[4.5rem] items-center px-4 md:px-8">
-      <Wordmark />
-      <div className="ml-auto h-11 w-11 rounded-full bg-surface" />
+    <div className="flex h-20 items-center px-4 md:px-8">
+      <Wordmark onInk priority />
+      <div className="ml-auto h-11 w-11 rounded-full bg-paper/20" />
     </div>
   );
 }

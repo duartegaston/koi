@@ -1,8 +1,9 @@
 import "server-only";
 
-import { findShippingZone, findStoreLocation, type StoreLocation } from "@/data-access/shipping.repository";
+import { findShippingZone } from "@/data-access/shipping.repository";
 import { distanceKm } from "@/lib/geo";
 import { geocodeAddress } from "@/lib/geocoding/nominatim";
+import { readStoreConfig } from "@/lib/store-config";
 import { fail, type ServiceResult } from "./result";
 
 export type StoreOptions = {
@@ -11,6 +12,7 @@ export type StoreOptions = {
   pickupAddress: string | null;
   transferAlias: string | null;
   deliveryConfigured: boolean;
+  mercadoPagoConfigured: boolean;
 };
 
 export type DeliveryQuote = {
@@ -25,21 +27,15 @@ export type DeliveryQuote = {
   price: string;
 };
 
-export async function getStoreOptions(): Promise<ServiceResult<StoreOptions>> {
-  const store = await findStoreLocation();
-  if (!store) {
-    return fail("store_not_configured", "El local no está configurado.");
-  }
-
+export function getStoreOptions(): StoreOptions {
+  const store = readStoreConfig();
   return {
-    ok: true,
-    value: {
-      city: store.city,
-      province: store.province,
-      pickupAddress: store.pickupAddress,
-      transferAlias: store.transferAlias,
-      deliveryConfigured: hasOrigin(store),
-    },
+    city: store.city,
+    province: store.province,
+    pickupAddress: store.pickupAddress,
+    transferAlias: store.transferAlias,
+    deliveryConfigured: store.originLatitude != null && store.originLongitude != null,
+    mercadoPagoConfigured: store.mercadoPagoConfigured,
   };
 }
 
@@ -49,10 +45,7 @@ export async function quoteDelivery(address: string): Promise<ServiceResult<Deli
     return fail("address_invalid", "Ingresá la dirección completa, dentro de Posadas.");
   }
 
-  const store = await findStoreLocation();
-  if (!store) {
-    return fail("store_not_configured", "El local no está configurado.");
-  }
+  const store = readStoreConfig();
   const originLatitude = store.originLatitude;
   const originLongitude = store.originLongitude;
   if (originLatitude == null || originLongitude == null) {
@@ -96,10 +89,6 @@ export async function quoteDelivery(address: string): Promise<ServiceResult<Deli
       price: zone.price,
     },
   };
-}
-
-function hasOrigin(store: StoreLocation): boolean {
-  return store.originLatitude != null && store.originLongitude != null;
 }
 
 function samePlace(value: string, expected: string): boolean {

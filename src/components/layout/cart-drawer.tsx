@@ -36,13 +36,13 @@ export function CartDrawer({ cart }: { cart: CartSnapshot }) {
     <>
       <button
         type="button"
-        className="relative inline-flex h-11 w-11 items-center justify-center rounded-full bg-ink text-paper focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+        className="relative inline-flex h-11 w-11 items-center justify-center rounded-full bg-paper text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         aria-label={cart.itemCount > 0 ? `Abrir carrito, ${countLabel}` : "Abrir carrito"}
         onClick={() => setOpen(true)}
       >
         <CartIcon />
         {cart.itemCount > 0 ? (
-          <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-paper px-1 text-xs leading-none text-ink ring-2 ring-background">
+          <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-ink px-1 font-label text-xs leading-none text-paper ring-2 ring-ink">
             {cart.itemCount}
           </span>
         ) : null}
@@ -58,7 +58,7 @@ export function CartDrawer({ cart }: { cart: CartSnapshot }) {
       >
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between border-b border-line px-5">
-            <h2 id="cart-title" className="font-sans text-sm font-medium uppercase tracking-[0.2em]">
+            <h2 id="cart-title" className="font-label text-sm font-medium tracking-wide">
               Carrito
             </h2>
             <button type="button" className="inline-flex h-11 w-11 items-center justify-center" aria-label="Cerrar carrito" onClick={() => setOpen(false)}>

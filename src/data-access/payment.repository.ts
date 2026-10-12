@@ -53,6 +53,23 @@ export async function insertPayment(input: NewPaymentInput, db?: DbExecutor): Pr
   }
 }
 
+export async function findPaymentByOrderId(orderId: string, db?: DbExecutor): Promise<PaymentRecord | null> {
+  const [row] = await executor(db)
+    .select({
+      id: payments.id,
+      orderId: payments.orderId,
+      provider: payments.provider,
+      externalId: payments.externalId,
+      status: payments.status,
+      amount: payments.amount,
+    })
+    .from(payments)
+    .where(eq(payments.orderId, orderId))
+    .limit(1);
+
+  return row ? mapPayment(row) : null;
+}
+
 export async function findPaymentByExternalId(
   provider: PaymentMethod,
   externalId: string,
@@ -74,10 +91,31 @@ export async function findPaymentByExternalId(
   return row ? mapPayment(row) : null;
 }
 
+export async function savePaymentResult(
+  paymentId: string,
+  input: { externalId: string; status: PaymentStatus },
+  db?: DbExecutor,
+) {
+  const [row] = await executor(db)
+    .update(payments)
+    .set({ externalId: input.externalId, status: input.status, updatedAt: new Date() })
+    .where(eq(payments.id, paymentId))
+    .returning({
+      id: payments.id,
+      orderId: payments.orderId,
+      provider: payments.provider,
+      externalId: payments.externalId,
+      status: payments.status,
+      amount: payments.amount,
+    });
+
+  return row ? mapPayment(row) : null;
+}
+
 export async function setPaymentStatus(paymentId: string, status: PaymentStatus, db?: DbExecutor) {
   const [row] = await executor(db)
     .update(payments)
-    .set({ status })
+    .set({ status, updatedAt: new Date() })
     .where(eq(payments.id, paymentId))
     .returning({
       id: payments.id,

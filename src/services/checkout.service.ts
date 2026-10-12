@@ -2,13 +2,20 @@ import "server-only";
 
 import { findCart, listCartLines, setCartStatus } from "@/data-access/cart.repository";
 import { isUniqueViolation, transaction } from "@/data-access/executor";
-import { insertOrder, insertOrderItems, type FulfillmentMethod, type PaymentMethod } from "@/data-access/order.repository";
-import { insertPayment } from "@/data-access/payment.repository";
-import { findStoreLocation } from "@/data-access/shipping.repository";
-import { addAmounts, multiplyAmount } from "@/lib/money";
+import {
+  cancelPendingOrder,
+  insertOrder,
+  insertOrderItems,
+  type FulfillmentMethod,
+  type PaymentMethod,
+} from "@/data-access/order.repository";
+import { insertPayment, savePaymentResult } from "@/data-access/payment.repository";
+import { addAmounts, multiplyAmount, toCents } from "@/lib/money";
 import { getServerEnv } from "@/lib/env";
+import { readStoreConfig } from "@/lib/store-config";
 import { orderWhatsAppText, whatsAppLink } from "@/lib/whatsapp/link";
 import { toCartView } from "./cart.service";
+import { openMercadoPagoCheckout } from "./mercadopago.service";
 import { fail, type ServiceResult } from "./result";
 import { quoteDelivery, type DeliveryQuote } from "./shipping.service";
 
@@ -31,6 +38,7 @@ export type PlacedOrder = {
   paymentMethod: PaymentMethod;
   transferAlias: string | null;
   whatsAppUrl: string;
+  checkoutUrl: string | null;
 };
 
 export async function placeOrder(input: PlaceOrderInput): Promise<ServiceResult<PlacedOrder>> {
@@ -53,10 +61,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<ServiceResult<
     return fail("line_not_sellable", `${blocked.name} ya no se puede pedir en esa cantidad.`);
   }
 
-  const store = await findStoreLocation();
-  if (!store) {
-    return fail("store_not_configured", "El local no está configurado.");
-  }
+  const store = readStoreConfig();
 
   let delivery: DeliveryQuote | null = null;
   if (input.fulfillmentMethod === "motorcycle") {
@@ -75,6 +80,9 @@ export async function placeOrder(input: PlaceOrderInput): Promise<ServiceResult<
 
   if (input.paymentMethod === "transfer" && !store.transferAlias) {
     return fail("transfer_alias_missing", "La transferencia todavía no tiene un alias cargado.");
+  }
+  if (input.paymentMethod === "mercadopago" && !store.mercadoPagoConfigured) {
+    return fail("mercadopago_not_configured", "Mercado Pago todavía no está disponible.");
   }
   if (input.paymentMethod !== "transfer" && input.paymentMethod !== "mercadopago") {
     return fail("payment_invalid", "Elegí Mercado Pago o transferencia.");
@@ -127,11 +135,49 @@ export async function placeOrder(input: PlaceOrderInput): Promise<ServiceResult<
         })),
         tx,
       );
-      await insertPayment({ orderId: order.id, provider: input.paymentMethod, amount: total, status: "pending" }, tx);
+      const payment = await insertPayment(
+        { orderId: order.id, provider: input.paymentMethod, amount: total, status: "pending" },
+        tx,
+      );
       await setCartStatus(input.cartId, "converted", tx);
 
-      return { order, lines: current.lines, subtotal, shippingCost, total };
+      return { order, payment, lines: current.lines, subtotal, shippingCost, total };
     });
+
+    let checkoutUrl: string | null = null;
+    if (input.paymentMethod === "mercadopago") {
+      const items = placed.lines.map((line) => ({
+        id: line.productId,
+        title: line.name,
+        quantity: line.quantity,
+        unitPrice: line.unitPrice,
+      }));
+      if (toCents(placed.shippingCost) > 0) {
+        items.push({ id: "envio", title: "Envío", quantity: 1, unitPrice: placed.shippingCost });
+      }
+
+      const preference = await openMercadoPagoCheckout({
+        orderId: placed.order.id,
+        publicCode: placed.order.publicCode,
+        items,
+        payerName: customer.value.name,
+        payerEmail: customer.value.email,
+      });
+      if (!preference.ok) {
+        await cancelPendingOrder(placed.order.id);
+        await setCartStatus(input.cartId, "active");
+        return preference;
+      }
+      try {
+        await savePaymentResult(placed.payment.id, { externalId: preference.value.preferenceId, status: "pending" });
+      } catch (error) {
+        console.error(
+          "No se pudo guardar la preferencia de Mercado Pago",
+          error instanceof Error ? error.message : "error",
+        );
+      }
+      checkoutUrl = preference.value.checkoutUrl;
+    }
 
     const whatsAppUrl = whatsAppLink(
       getServerEnv().WHATSAPP_NUMBER,
@@ -165,6 +211,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<ServiceResult<
         paymentMethod: input.paymentMethod,
         transferAlias: input.paymentMethod === "transfer" ? store.transferAlias : null,
         whatsAppUrl,
+        checkoutUrl,
       },
     };
   } catch (error) {

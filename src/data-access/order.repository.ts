@@ -151,7 +151,18 @@ export async function findOrderById(id: string, db?: DbExecutor): Promise<OrderR
 export async function approvePendingOrder(orderId: string, db?: DbExecutor) {
   const [row] = await executor(db)
     .update(orders)
-    .set({ status: "paid" })
+    .set({ status: "paid", updatedAt: new Date() })
+    .where(and(eq(orders.id, orderId), eq(orders.status, "pending_payment")))
+    .returning({ id: orders.id, publicCode: orders.publicCode, status: orders.status });
+
+  return row ? { ...row, status: asOrderStatus(row.status) } : null;
+}
+
+/** Suelta el carrito para poder reintentar si Mercado Pago no abrió el cobro. */
+export async function cancelPendingOrder(orderId: string, db?: DbExecutor) {
+  const [row] = await executor(db)
+    .update(orders)
+    .set({ status: "cancelled", cartId: null, updatedAt: new Date() })
     .where(and(eq(orders.id, orderId), eq(orders.status, "pending_payment")))
     .returning({ id: orders.id, publicCode: orders.publicCode, status: orders.status });
 

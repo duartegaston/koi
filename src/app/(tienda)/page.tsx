@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { FeaturedRail } from "@/components/product/product-grid";
 import { buttonClass } from "@/components/ui/button";
@@ -30,17 +31,23 @@ export default async function HomePage() {
 
   return (
     <>
-      <section className="relative flex min-h-[calc(100dvh-4.5rem)] flex-col items-center justify-center bg-ink px-6 pt-24 pb-32 text-center text-paper">
-        <p className="text-xs font-medium uppercase tracking-[0.28em]">Posadas, Misiones</p>
-        <h1 className="mt-6 max-w-4xl text-5xl uppercase leading-[0.92] sm:text-7xl md:text-8xl">
-          Hola,
-          <br />
-          Posadas
-        </h1>
-        <p className="mt-8 max-w-md text-sm uppercase leading-relaxed tracking-[0.18em]">
+      <section className="relative flex min-h-[calc(100dvh-5rem)] flex-col items-center justify-center bg-ink px-6 pt-16 pb-36 text-center text-paper">
+        <Image
+          src="/brand/lockup.png"
+          alt="koi. unidos x el chocolate"
+          width={1100}
+          height={792}
+          priority
+          sizes="(min-width: 768px) 28rem, 16rem"
+          className="h-auto w-full max-w-64 md:max-w-md"
+          style={{ width: "100%", height: "auto" }}
+        />
+        <p className="mt-8 font-label text-sm tracking-wide text-sand">Posadas, Misiones</p>
+        <h1 className="mt-3 max-w-xl text-4xl sm:text-5xl">Chocolates en Posadas</h1>
+        <p className="mt-4 max-w-md text-base leading-relaxed text-sand">
           Pedidos con envío dentro de la ciudad, o retiro en el local.
         </p>
-        <a href="#tienda" className={`${buttonClass.inverse} mt-10`}>
+        <a href="#tienda" className={`${buttonClass.primary} mt-10`}>
           Ver la tienda
         </a>
         <svg
@@ -56,7 +63,7 @@ export default async function HomePage() {
       <Marquee items={ticker} />
 
       <section className="bg-surface px-6 py-20 text-center md:py-28">
-        <h2 className="font-display text-4xl uppercase leading-none tracking-tight sm:text-6xl">Cerca de casa</h2>
+        <h2 className="text-4xl sm:text-6xl">Cerca de casa</h2>
         <p className="mx-auto mt-6 max-w-md text-base leading-relaxed">
           El pedido no sale de un depósito lejano. Sale del local, y si estás en Posadas te lo llevamos.
         </p>
@@ -68,7 +75,7 @@ export default async function HomePage() {
       <Marquee items={["Hecho para retirar", "O para que te lo lleven"]} tone="ink" />
 
       <section id="tienda" className="scroll-mt-20 py-16 md:py-24">
-        <h2 className="px-6 text-center font-display text-4xl uppercase leading-none sm:text-5xl">Chocolates</h2>
+        <h2 className="px-6 text-center text-4xl sm:text-5xl">Chocolates</h2>
         <div className="mt-10">
           {products.length === 0 ? (
             <div className="px-6">
@@ -83,21 +90,21 @@ export default async function HomePage() {
       <Marquee items={ticker} />
 
       <section className="px-6 py-16 md:py-24">
-        <h2 className="text-center font-display text-4xl uppercase leading-none sm:text-5xl">Cómo se pide</h2>
+        <h2 className="text-center text-4xl sm:text-5xl">Cómo se pide</h2>
         <ol className="mx-auto mt-12 grid max-w-5xl gap-10 md:grid-cols-3">
           {notes.map((note, index) => (
             <li key={note.title}>
               <p className="font-display text-5xl text-muted">{index + 1}</p>
               <h3 className="mt-4 font-display text-2xl">{note.title}</h3>
-              <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted">{note.body}</p>
+              <p className="mt-3 max-w-xs text-base leading-relaxed text-muted">{note.body}</p>
             </li>
           ))}
         </ol>
       </section>
 
       <section className="bg-ink px-6 py-20 text-center text-paper md:py-28">
-        <h2 className="font-display text-4xl uppercase leading-none sm:text-6xl">Escribinos</h2>
-        <p className="mx-auto mt-6 max-w-sm text-sm uppercase leading-relaxed tracking-[0.16em]">
+        <h2 className="text-4xl sm:text-6xl">Escribinos</h2>
+        <p className="mx-auto mt-6 max-w-sm text-base leading-relaxed text-sand">
           Una consulta, un pedido, un retiro. Te respondemos por WhatsApp.
         </p>
         <Link href="/contacto" className={`${buttonClass.inverse} mt-10`}>

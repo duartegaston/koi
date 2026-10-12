@@ -1,9 +1,9 @@
-import type { InputHTMLAttributes, TextareaHTMLAttributes } from "react";
+import type { InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 const controlClass =
-  "w-full border border-line bg-background px-3 py-2 text-sm outline-none transition " +
-  "focus:border-foreground aria-invalid:border-foreground";
+  "w-full border border-line bg-background px-3 py-2 text-base outline-none transition " +
+  "focus:border-primary aria-invalid:border-primary";
 
 type FieldProps = {
   label: string;
@@ -15,7 +15,7 @@ function FieldShell({ label, name, errors, children }: FieldProps & { children: 
   const error = errors?.[0];
   return (
     <div className="space-y-1.5">
-      <label htmlFor={name} className="block text-sm font-medium">
+      <label htmlFor={name} className="block font-label text-sm font-medium">
         {label}
       </label>
       {children}
@@ -66,6 +66,30 @@ export function TextareaField({
         className={cn(controlClass, "min-h-32", className)}
         {...props}
       />
+    </FieldShell>
+  );
+}
+
+export function SelectField({
+  label,
+  name,
+  errors,
+  className,
+  children,
+  ...props
+}: FieldProps & SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <FieldShell label={label} name={name} errors={errors}>
+      <select
+        id={name}
+        name={name}
+        aria-invalid={errors?.length ? true : undefined}
+        aria-describedby={errors?.length ? `${name}-error` : undefined}
+        className={cn(controlClass, "h-11", className)}
+        {...props}
+      >
+        {children}
+      </select>
     </FieldShell>
   );
 }

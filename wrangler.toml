@@ -14,7 +14,13 @@ binding = "WORKER_SELF_REFERENCE"
 service = "koi"
 
 # Variables no sensibles. Los secretos (DATABASE_URL, RESEND_API_KEY, EMAIL_FROM,
-# WHATSAPP_NUMBER) se cargan con `wrangler secret put <NAME>`
-# o desde el dashboard de Cloudflare.
+# WHATSAPP_NUMBER, MERCADOPAGO_ACCESS_TOKEN, MERCADOPAGO_WEBHOOK_SECRET,
+# ADMIN_USERNAME, ADMIN_PASSWORD_HASH, ADMIN_SESSION_SECRET) se cargan
+# con `wrangler secret put <NAME>` o desde el dashboard de Cloudflare.
+# Dirección, alias y coordenadas del local también van como secretos o [vars].
 [vars]
 APP_URL = "http://localhost:3000"
+
+[[r2_buckets]]
+binding = "PRODUCT_IMAGES"
+bucket_name = "koi-product-images"

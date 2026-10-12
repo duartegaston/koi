@@ -233,17 +233,8 @@ try {
     const settings = await tx`select id from store_settings limit 1`;
     if (settings.length === 0) {
       await tx`
-        insert into store_settings (
-          city, province, country, pickup_address, transfer_alias, origin_latitude, origin_longitude
-        ) values (
-          'Posadas',
-          'Misiones',
-          'AR',
-          'Local de prueba, Posadas',
-          'koi.prueba',
-          -27.362100,
-          -55.900900
-        )
+        insert into store_settings (city, province, country)
+        values ('Posadas', 'Misiones', 'AR')
       `;
     }
 

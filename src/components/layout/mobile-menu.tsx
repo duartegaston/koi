@@ -26,7 +26,7 @@ export function MobileMenu({ categories }: { categories: CategoryLink[] }) {
     <>
       <button
         type="button"
-        className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-ink text-paper focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground md:hidden"
+        className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-paper text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary md:hidden"
         aria-label="Abrir menú"
         aria-expanded={open}
         onClick={() => setOpen(true)}
@@ -44,7 +44,7 @@ export function MobileMenu({ categories }: { categories: CategoryLink[] }) {
       >
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between border-b border-line px-4">
-            <p id="menu-title" className="font-sans text-sm font-medium uppercase tracking-[0.2em]">
+            <p id="menu-title" className="font-label text-sm tracking-wide">
               Menú
             </p>
             <button type="button" className="inline-flex h-11 w-11 items-center justify-center" aria-label="Cerrar menú" onClick={() => setOpen(false)}>

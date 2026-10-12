@@ -9,7 +9,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { InputField } from "@/components/ui/field";
 import type { CartSnapshot } from "@/lib/cart-types";
 import { addAmounts, formatArs } from "@/lib/money";
-import { safeWhatsAppUrl } from "@/lib/safe-url";
+import { safeMercadoPagoUrl, safeWhatsAppUrl } from "@/lib/safe-url";
 
 const idleCheckoutState: CheckoutState = { status: "idle" };
 
@@ -19,6 +19,7 @@ type StoreView = {
   pickupAddress: string | null;
   transferAlias: string | null;
   deliveryConfigured: boolean;
+  mercadoPagoConfigured: boolean;
 };
 
 export function CheckoutForm({
@@ -74,8 +75,9 @@ function CheckoutFields({
   const canPickup = Boolean(store.pickupAddress);
   const canDeliver = store.deliveryConfigured;
   const canTransfer = Boolean(store.transferAlias);
+  const canMercadoPago = store.mercadoPagoConfigured;
   const [fulfillment, setFulfillment] = useState<"motorcycle" | "pickup">(canPickup ? "pickup" : "motorcycle");
-  const [payment, setPayment] = useState<"mercadopago" | "transfer">("mercadopago");
+  const [payment, setPayment] = useState<"mercadopago" | "transfer">(canMercadoPago ? "mercadopago" : "transfer");
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
@@ -115,14 +117,14 @@ function CheckoutFields({
     <div className="mx-auto grid max-w-6xl gap-12 px-6 py-12 lg:grid-cols-[minmax(0,1fr)_20rem] lg:py-16">
       <form action={action} className="space-y-10" noValidate>
         <div>
-          <h1 className="text-5xl uppercase leading-none">Checkout</h1>
-          <p className="mt-3 text-sm text-muted">
+          <h1 className="text-5xl">Checkout</h1>
+          <p className="mt-3 text-base text-muted">
             {store.city}, {store.province}. El envío es solo dentro de la ciudad.
           </p>
         </div>
 
         <fieldset className="space-y-4">
-          <legend className="text-xs uppercase tracking-[0.18em] text-muted">Tus datos</legend>
+          <legend className="font-label text-sm tracking-wide text-muted">Tus datos</legend>
           <InputField
             label="Nombre"
             name="customerName"
@@ -156,7 +158,7 @@ function CheckoutFields({
         </fieldset>
 
         <fieldset className="space-y-3">
-          <legend className="text-xs uppercase tracking-[0.18em] text-muted">Entrega</legend>
+          <legend className="font-label text-sm tracking-wide text-muted">Entrega</legend>
           {canDeliver ? (
             <Radio
               name="fulfillmentMethod"
@@ -208,14 +210,18 @@ function CheckoutFields({
         </fieldset>
 
         <fieldset className="space-y-3">
-          <legend className="text-xs uppercase tracking-[0.18em] text-muted">Pago</legend>
-          <Radio
-            name="paymentMethod"
-            value="mercadopago"
-            checked={payment === "mercadopago"}
-            onChange={() => setPayment("mercadopago")}
-            label="Mercado Pago"
-          />
+          <legend className="font-label text-sm tracking-wide text-muted">Pago</legend>
+          {canMercadoPago ? (
+            <Radio
+              name="paymentMethod"
+              value="mercadopago"
+              checked={payment === "mercadopago"}
+              onChange={() => setPayment("mercadopago")}
+              label="Mercado Pago"
+            />
+          ) : (
+            <p className="text-sm text-muted">Mercado Pago todavía no está disponible.</p>
+          )}
           {canTransfer ? (
             <Radio
               name="paymentMethod"
@@ -234,7 +240,7 @@ function CheckoutFields({
         </fieldset>
 
         {state.status === "error" ? (
-          <p role="alert" className="text-sm">
+          <p role="alert" className="border border-line px-4 py-3 text-sm">
             {state.message}
           </p>
         ) : null}
@@ -244,13 +250,13 @@ function CheckoutFields({
           </p>
         ) : null}
 
-        <IntentButton intent="place" disabled={blocked}>
-          Confirmar pedido
+        <IntentButton intent="place" disabled={blocked || (!canMercadoPago && !canTransfer)}>
+          {payment === "mercadopago" && canMercadoPago ? "Continuar al pago" : "Confirmar pedido"}
         </IntentButton>
       </form>
 
       <aside className="h-fit border border-line p-5 lg:sticky lg:top-24">
-        <h2 className="text-xs uppercase tracking-[0.18em] text-muted">Tu pedido</h2>
+        <h2 className="font-label text-sm tracking-wide text-muted">Tu pedido</h2>
         <ul className="mt-4 divide-y divide-line">
           {cart.lines.map((line) => (
             <li key={line.productId} className="flex items-start justify-between gap-4 py-3 text-sm">
@@ -300,18 +306,24 @@ function QuoteSummary({ quote }: { quote: DeliveryQuoteView }) {
 
 function OrderSuccess({ order }: { order: Extract<CheckoutState, { status: "success" }>["order"] }) {
   const whatsAppUrl = safeWhatsAppUrl(order.whatsAppUrl);
+  const checkoutUrl = order.checkoutUrl ? safeMercadoPagoUrl(order.checkoutUrl) : null;
+  const payingOnline = order.paymentMethod === "mercadopago";
+
+  useEffect(() => {
+    if (checkoutUrl) window.location.assign(checkoutUrl);
+  }, [checkoutUrl]);
 
   return (
     <section className="mx-auto max-w-xl px-6 py-16">
-      <p className="text-xs uppercase tracking-[0.22em] text-muted">Pedido confirmado</p>
+      <p className="font-label text-sm tracking-wide text-muted">{payingOnline ? "Pedido anotado" : "Pedido confirmado"}</p>
       <h1 className="mt-3 text-4xl leading-none md:text-5xl">{order.publicCode}</h1>
       <p className="mt-4 text-sm leading-relaxed text-muted">
         {order.fulfillmentMethod === "pickup"
           ? "El pedido queda para retirar en el local."
           : "El pedido incluye envío."}{" "}
-        {order.paymentMethod === "transfer"
-          ? "Enviá el comprobante de la transferencia por WhatsApp."
-          : "El pago por Mercado Pago se coordina por WhatsApp."}
+        {payingOnline
+          ? "Te estamos llevando a Mercado Pago. Si no abre, usá el botón de abajo."
+          : "Enviá el comprobante de la transferencia por WhatsApp."}
       </p>
       {order.paymentMethod === "transfer" && order.transferAlias ? (
         <p className="mt-4 border border-line px-4 py-3 text-sm">Alias: {order.transferAlias}</p>
@@ -330,14 +342,26 @@ function OrderSuccess({ order }: { order: Extract<CheckoutState, { status: "succ
           <dd>{formatArs(order.total)}</dd>
         </div>
       </dl>
+      {checkoutUrl ? (
+        <a
+          href={checkoutUrl}
+          className="mt-8 inline-flex h-11 w-full items-center justify-center bg-foreground px-4 text-sm font-medium text-background hover:bg-foreground/80"
+        >
+          Pagar con Mercado Pago
+        </a>
+      ) : null}
       {whatsAppUrl ? (
         <a
           href={whatsAppUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-8 inline-flex h-11 w-full items-center justify-center bg-foreground px-4 text-sm font-medium text-background hover:bg-foreground/80"
+          className={
+            checkoutUrl
+              ? "mt-3 inline-flex h-11 w-full items-center justify-center border border-foreground px-4 text-sm font-medium"
+              : "mt-8 inline-flex h-11 w-full items-center justify-center bg-foreground px-4 text-sm font-medium text-background hover:bg-foreground/80"
+          }
         >
-          Enviar pedido por WhatsApp
+          {checkoutUrl ? "Avisar al local por WhatsApp" : "Enviar pedido por WhatsApp"}
         </a>
       ) : null}
       <p className="mt-6">

@@ -1,31 +1,75 @@
 @import "tailwindcss";
 
-@theme {
-  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
-  --color-background: #f4f1eb;
-  --color-foreground: #1c1917;
-  --color-muted: #4a453f;
-  --color-line: #e3ddd4;
-  --color-surface: #e8e2d8;
-  --color-ink: #24211e;
-  --color-paper: #f7f4ef;
+/*
+  Marca Koi. Un solo lugar para colores y tipografía.
+
+  Primitivos (no usar en componentes): --brand-*
+  Semánticos (usar en componentes): background, foreground, muted, surface,
+  line, ink, paper, primary, primary-foreground, sand.
+
+  Atelier: crema de fondo, texto cacao, azul de contraste y rojo de acción.
+  El rojo no llega a 4.5:1 en texto chico sobre crema, arena o azul:
+  va en el logo, en el foco y en botones con texto bold de 20px o más.
+
+  Limbo vive en el logo (public/brand). ITC Bauhaus se acerca con Josefin Sans
+  (--font-label). Sukar, para textos de publicación, se acerca con Source Serif 4
+  (--font-sans y --font-display).
+*/
+
+:root {
+  --brand-red: #ed4227;
+  --brand-navy: #223644;
+  --brand-cream: #fbf8ef;
+  --brand-sand: #e5e2d9;
+  --brand-cacao: #442f13;
+
+  --koi-background: var(--brand-cream);
+  --koi-foreground: var(--brand-cacao);
+  --koi-muted: var(--brand-navy);
+  --koi-surface: var(--brand-sand);
+  --koi-line: color-mix(in srgb, var(--brand-cacao) 16%, var(--brand-cream));
+  --koi-ink: var(--brand-navy);
+  --koi-paper: var(--brand-cream);
+  --koi-primary: var(--brand-red);
+  --koi-primary-foreground: var(--brand-cream);
+  color-scheme: light;
+}
+
+@theme inline {
+  --font-sans: var(--font-source-serif), ui-serif, Georgia, serif;
+  --font-display: var(--font-source-serif), ui-serif, Georgia, serif;
+  --font-label: var(--font-josefin), ui-sans-serif, system-ui, sans-serif;
+
+  --color-background: var(--koi-background);
+  --color-foreground: var(--koi-foreground);
+  --color-muted: var(--koi-muted);
+  --color-surface: var(--koi-surface);
+  --color-line: var(--koi-line);
+  --color-ink: var(--koi-ink);
+  --color-paper: var(--koi-paper);
+  --color-primary: var(--koi-primary);
+  --color-primary-foreground: var(--koi-primary-foreground);
+  --color-sand: var(--brand-sand);
 }
 
 @layer base {
   body {
     @apply bg-background text-foreground antialiased;
+    line-height: 1.6;
   }
 
-  h1 {
+  h1,
+  h2,
+  h3 {
     font-family: var(--font-display);
     font-weight: 500;
-    letter-spacing: -0.03em;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
   }
 
   ::selection {
-    background: var(--color-ink);
-    color: var(--color-paper);
+    background: var(--koi-ink);
+    color: var(--koi-paper);
   }
 }
 
@@ -37,27 +81,27 @@
   max-width: 100vw;
   border: 0;
   padding: 0;
-  background: var(--color-background);
-  color: var(--color-foreground);
+  background: var(--koi-background);
+  color: var(--koi-foreground);
 }
 
 .cart-dialog {
   position: fixed;
   inset: 0 0 0 auto;
   width: min(100vw, 26rem);
-  border-left: 1px solid var(--color-line);
+  border-left: 1px solid var(--koi-line);
 }
 
 .menu-dialog {
   position: fixed;
   inset: 0 auto 0 0;
   width: min(100vw, 20rem);
-  border-right: 1px solid var(--color-line);
+  border-right: 1px solid var(--koi-line);
 }
 
 .cart-dialog::backdrop,
 .menu-dialog::backdrop {
-  background: rgb(28 25 23 / 0.45);
+  background: color-mix(in srgb, var(--koi-ink) 55%, transparent);
 }
 
 .marquee-track {

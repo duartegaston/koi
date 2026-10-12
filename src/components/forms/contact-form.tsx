@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { submitContact, type ContactFormState } from "@/actions/contact";
-import { Button } from "@/components/ui/button";
+import { Button, buttonClass } from "@/components/ui/button";
 import { InputField, TextareaField } from "@/components/ui/field";
 import { safeWhatsAppUrl } from "@/lib/safe-url";
 
@@ -21,7 +21,7 @@ export function ContactForm() {
             href={whatsAppUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex h-11 w-full items-center justify-center bg-foreground px-4 text-sm font-medium text-background transition-colors hover:bg-foreground/80"
+            className={`${buttonClass.primary} w-full`}
           >
             Enviar pedido por WhatsApp
           </a>

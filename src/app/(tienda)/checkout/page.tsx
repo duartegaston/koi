@@ -6,13 +6,8 @@ import { getStoreOptions } from "@/services/shipping.service";
 export const metadata: Metadata = { title: "Checkout" };
 
 export default async function CheckoutPage() {
-  const [cart, store] = await Promise.all([readCartSnapshot(), getStoreOptions()]);
+  const cart = await readCartSnapshot();
+  const store = getStoreOptions();
 
-  return (
-    <CheckoutForm
-      cart={cart}
-      store={store.ok ? store.value : null}
-      storeError={store.ok ? null : store.message}
-    />
-  );
+  return <CheckoutForm cart={cart} store={store} storeError={null} />;
 }

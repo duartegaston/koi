@@ -22,8 +22,8 @@ export function CategoryLinks({ categories }: { categories: CategoryLink[] }) {
               href={href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "text-xs font-medium uppercase tracking-[0.18em] underline-offset-4 hover:underline",
-                active ? "text-foreground" : "text-muted hover:text-foreground",
+                "inline-flex min-h-11 items-center font-label text-sm tracking-wide underline-offset-8 hover:text-paper",
+                active ? "text-paper underline decoration-primary decoration-2" : "text-sand",
               )}
             >
               {category.name}

@@ -27,8 +27,8 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-16 text-center md:py-20">
-      <p className="text-xs font-medium uppercase tracking-[0.22em] text-muted">Categoría</p>
-      <h1 className="mt-3 text-5xl uppercase leading-none md:text-7xl">{category.name}</h1>
+      <p className="font-label text-sm tracking-wide text-muted">Categoría</p>
+      <h1 className="mt-3 text-5xl md:text-7xl">{category.name}</h1>
       {category.description ? (
         <p className="mx-auto mt-5 max-w-xl text-sm leading-relaxed text-muted">{category.description}</p>
       ) : null}

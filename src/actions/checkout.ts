@@ -23,6 +23,7 @@ export type PlacedOrderView = {
   paymentMethod: "mercadopago" | "transfer";
   transferAlias: string | null;
   whatsAppUrl: string;
+  checkoutUrl: string | null;
 };
 
 export type CheckoutFieldErrors = Partial<{

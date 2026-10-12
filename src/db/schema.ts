@@ -147,9 +147,13 @@ export const productImages = pgTable(
     url: text("url").notNull(),
     alt: varchar("alt", { length: 200 }),
     sortOrder: integer("sort_order").notNull().default(0),
+    objectKey: uuid("object_key"),
     ...timestamps(),
   },
-  (table) => [index("product_images_product_id_idx").on(table.productId)],
+  (table) => [
+    index("product_images_product_id_idx").on(table.productId),
+    uniqueIndex("product_images_object_key_idx").on(table.objectKey).where(sql`${table.objectKey} IS NOT NULL`),
+  ],
 );
 
 export const carts = pgTable(
@@ -219,6 +223,7 @@ export const orders = pgTable(
   },
   (table) => [
     index("orders_status_created_at_idx").on(table.status, table.createdAt.desc()),
+    index("orders_created_at_id_idx").on(table.createdAt.desc(), table.id.desc()),
     index("orders_customer_phone_idx").on(table.customerPhone),
     index("orders_shipping_zone_id_idx").on(table.shippingZoneId),
     check(

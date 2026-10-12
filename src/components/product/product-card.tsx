@@ -25,7 +25,7 @@ export function ProductCard({
         <ProductImage src={image?.url ?? null} alt="" priority={priority} />
       </div>
       <h3 className="mt-4 text-center font-display text-xl leading-snug">{product.name}</h3>
-      <p className="mt-1 text-center text-sm">{formatArs(product.price)}</p>
+      <p className="mt-1 text-center font-label text-base tabular-nums">{formatArs(product.price)}</p>
     </Link>
   );
 }
