@@ -3,12 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAdmin } from "@/services/admin-auth.service";
-import { approveTransferOrder, cancelOrder, confirmMercadoPagoOrder, fulfillOrder } from "@/services/order.service";
+import { approveCashOrder, approveTransferOrder, cancelOrder, confirmMercadoPagoOrder, fulfillOrder } from "@/services/order.service";
 
 export type OrderActionState = { status: "idle" } | { status: "error"; message: string } | { status: "success"; message: string };
 
 const intents = {
   approve: approveTransferOrder,
+  approve_cash: approveCashOrder,
   confirm: confirmMercadoPagoOrder,
   cancel: cancelOrder,
   fulfill: fulfillOrder,
@@ -21,7 +22,7 @@ export async function updateOrderAction(_prev: OrderActionState, formData: FormD
   if (!z.string().regex(/^KOI-[A-F0-9]{8}$/).safeParse(publicCode).success) {
     return { status: "error", message: "No encontramos ese pedido." };
   }
-  if (intent !== "approve" && intent !== "confirm" && intent !== "cancel" && intent !== "fulfill") {
+  if (intent !== "approve" && intent !== "approve_cash" && intent !== "confirm" && intent !== "cancel" && intent !== "fulfill") {
     return { status: "error", message: "Esa acción no está disponible." };
   }
 
@@ -35,7 +36,9 @@ export async function updateOrderAction(_prev: OrderActionState, formData: FormD
 }
 
 function successMessage(intent: keyof typeof intents): string {
-  if (intent === "approve" || intent === "confirm") return "Pedido aprobado. El stock ya se descontó.";
+  if (intent === "approve" || intent === "approve_cash" || intent === "confirm") {
+    return "Pedido aprobado. Se descontó el stock disponible. Lo que falta queda a pedido.";
+  }
   if (intent === "cancel") return "Pedido cancelado.";
   return "Pedido marcado como entregado.";
 }

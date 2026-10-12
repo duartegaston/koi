@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { AdminPage } from "@/components/admin/admin-page";
 import { OrderActions } from "@/components/forms/order-actions";
 import { fulfillmentLabel, formatAdminDate, orderStatusLabel, paymentMethodLabel, paymentStatusLabel } from "@/lib/admin-labels";
+import { mapLink } from "@/lib/geo";
 import { formatArs } from "@/lib/money";
 import { getOrderForAdmin } from "@/services/order.service";
 
@@ -18,6 +19,8 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
   const { order, payment } = detail;
   const pending = order.status === "pending_payment";
   const waitingMercadoPago = pending && order.paymentMethod === "mercadopago" && payment?.status !== "approved";
+  const map =
+    order.latitude && order.longitude ? mapLink(Number(order.latitude), Number(order.longitude)) : null;
 
   return (
     <AdminPage title={order.publicCode}>
@@ -52,8 +55,27 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
             {order.fulfillmentMethod === "motorcycle" && order.addressLine ? (
               <>
                 <br />
-                {order.addressLine}
-                {order.distanceKm ? ` · ${order.distanceKm} km` : ""}
+                Escribió: {order.addressLine}
+                {order.geocodedAddress ? (
+                  <>
+                    <br />
+                    Ubicada en: {order.geocodedAddress}
+                  </>
+                ) : null}
+                {order.distanceKm ? (
+                  <>
+                    <br />
+                    {order.distanceKm} km
+                  </>
+                ) : null}
+                {map ? (
+                  <>
+                    <br />
+                    <a href={map} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">
+                      Ver en el mapa
+                    </a>
+                  </>
+                ) : null}
               </>
             ) : null}
           </dd>
@@ -66,6 +88,11 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
             <span>
               {item.productName}
               <span className="text-muted"> × {item.quantity}</span>
+              {item.madeToOrderQuantity > 0 ? (
+                <span className="mt-1 block text-xs text-muted">
+                  {item.madeToOrderQuantity} a pedido · llega entre 7 y 10 días hábiles
+                </span>
+              ) : null}
             </span>
             <span>{formatArs(item.lineTotal)}</span>
           </li>
@@ -91,6 +118,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
       <OrderActions
         publicCode={order.publicCode}
         canApproveTransfer={pending && order.paymentMethod === "transfer"}
+        canApproveCash={pending && order.paymentMethod === "cash"}
         canConfirmPayment={pending && order.paymentMethod === "mercadopago" && payment?.status === "approved"}
         canCancel={pending}
         canFulfill={order.status === "paid"}

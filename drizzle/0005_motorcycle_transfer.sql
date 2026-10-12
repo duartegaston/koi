@@ -1,0 +1,1 @@
+ALTER TABLE "orders" ADD CONSTRAINT "orders_motorcycle_transfer_check" CHECK ("orders"."fulfillment_method" <> 'motorcycle' OR "orders"."payment_method" = 'transfer');

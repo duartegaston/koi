@@ -7,6 +7,7 @@ type CardProduct = {
   name: string;
   slug: string;
   price: string;
+  stock: number;
   images: { url: string }[];
 };
 
@@ -26,6 +27,9 @@ export function ProductCard({
       </div>
       <h3 className="mt-4 text-center font-display text-xl leading-snug">{product.name}</h3>
       <p className="mt-1 text-center font-label text-base tabular-nums">{formatArs(product.price)}</p>
+      {product.stock <= 0 ? (
+        <p className="mt-1 text-center text-sm">A pedido · 7 a 10 días hábiles</p>
+      ) : null}
     </Link>
   );
 }

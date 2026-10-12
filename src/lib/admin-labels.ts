@@ -11,6 +11,7 @@ export const orderStatusLabel: Record<OrderStatus, string> = {
 export const paymentMethodLabel: Record<PaymentMethod, string> = {
   transfer: "Transferencia",
   mercadopago: "Mercado Pago",
+  cash: "Efectivo",
 };
 
 export const paymentStatusLabel: Record<PaymentStatus, string> = {

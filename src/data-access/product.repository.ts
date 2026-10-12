@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { schema } from "@/db";
 import { executor, type DbExecutor } from "./executor";
 
@@ -116,19 +116,15 @@ export async function listProductsByIds(ids: string[], db?: DbExecutor): Promise
     .where(inArray(products.id, ids));
 }
 
-/** Baja el stock solo si todavía alcanza. `null` significa que otra compra se llevó las unidades. */
+/**
+ * Descuenta hasta agotar el stock. Si piden más de lo que hay, el stock queda en 0
+ * y el resto del pedido se consigue a pedido. `null` si el producto no existe.
+ */
 export async function decrementStock(productId: string, quantity: number, db?: DbExecutor) {
   const [row] = await executor(db)
     .update(products)
-    .set({ stock: sql`${products.stock} - ${quantity}` })
-    .where(
-      and(
-        eq(products.id, productId),
-        gte(products.stock, quantity),
-        eq(products.isActive, true),
-        isNull(products.deletedAt),
-      ),
-    )
+    .set({ stock: sql`GREATEST(${products.stock} - ${quantity}, 0)` })
+    .where(eq(products.id, productId))
     .returning({ id: products.id, stock: products.stock });
 
   return row ?? null;

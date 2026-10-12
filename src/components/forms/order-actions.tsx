@@ -9,18 +9,20 @@ const initialState: OrderActionState = { status: "idle" };
 export function OrderActions({
   publicCode,
   canApproveTransfer,
+  canApproveCash,
   canConfirmPayment,
   canCancel,
   canFulfill,
 }: {
   publicCode: string;
   canApproveTransfer: boolean;
+  canApproveCash: boolean;
   canConfirmPayment: boolean;
   canCancel: boolean;
   canFulfill: boolean;
 }) {
   const [state, action, pending] = useActionState(updateOrderAction, initialState);
-  const hasAction = canApproveTransfer || canConfirmPayment || canCancel || canFulfill;
+  const hasAction = canApproveTransfer || canApproveCash || canConfirmPayment || canCancel || canFulfill;
   if (!hasAction && state.status === "idle") return null;
 
   return (
@@ -40,6 +42,11 @@ export function OrderActions({
         {canApproveTransfer ? (
           <Button type="submit" name="intent" value="approve" disabled={pending}>
             Aprobar transferencia
+          </Button>
+        ) : null}
+        {canApproveCash ? (
+          <Button type="submit" name="intent" value="approve_cash" disabled={pending}>
+            Aprobar efectivo
           </Button>
         ) : null}
         {canConfirmPayment ? (

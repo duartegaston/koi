@@ -12,7 +12,7 @@ export type OrderStatus = (typeof orderStatuses)[number];
 export const fulfillmentMethods = ["motorcycle", "pickup"] as const;
 export type FulfillmentMethod = (typeof fulfillmentMethods)[number];
 
-export const paymentMethods = ["mercadopago", "transfer"] as const;
+export const paymentMethods = ["mercadopago", "transfer", "cash"] as const;
 export type PaymentMethod = (typeof paymentMethods)[number];
 
 export type NewOrderInput = {
@@ -22,6 +22,7 @@ export type NewOrderInput = {
   customerEmail?: string;
   fulfillmentMethod: FulfillmentMethod;
   addressLine?: string;
+  geocodedAddress?: string;
   city?: string;
   province?: string;
   latitude?: string;
@@ -39,6 +40,7 @@ export type NewOrderItemInput = {
   productName: string;
   unitPrice: string;
   quantity: number;
+  madeToOrderQuantity: number;
   lineTotal: string;
 };
 
@@ -54,6 +56,7 @@ export type OrderRecord = {
   customerEmail: string | null;
   fulfillmentMethod: FulfillmentMethod;
   addressLine: string | null;
+  geocodedAddress: string | null;
   city: string | null;
   province: string | null;
   latitude: string | null;
@@ -78,6 +81,7 @@ const orderColumns = {
   customerEmail: orders.customerEmail,
   fulfillmentMethod: orders.fulfillmentMethod,
   addressLine: orders.addressLine,
+  geocodedAddress: orders.geocodedAddress,
   city: orders.city,
   province: orders.province,
   latitude: orders.latitude,
@@ -102,6 +106,7 @@ export async function insertOrder(input: NewOrderInput, db?: DbExecutor) {
         customerEmail: input.customerEmail,
         fulfillmentMethod: input.fulfillmentMethod,
         addressLine: input.addressLine,
+        geocodedAddress: input.geocodedAddress,
         city: input.city,
         province: input.province,
         latitude: input.latitude,
@@ -190,6 +195,7 @@ async function withItems(
     customerEmail: string | null;
     fulfillmentMethod: string;
     addressLine: string | null;
+    geocodedAddress: string | null;
     city: string | null;
     province: string | null;
     latitude: string | null;
@@ -211,6 +217,7 @@ async function withItems(
       productName: orderItems.productName,
       unitPrice: orderItems.unitPrice,
       quantity: orderItems.quantity,
+      madeToOrderQuantity: orderItems.madeToOrderQuantity,
       lineTotal: orderItems.lineTotal,
     })
     .from(orderItems)
@@ -241,7 +248,7 @@ function asFulfillmentMethod(value: string): FulfillmentMethod {
 }
 
 function asPaymentMethod(value: string): PaymentMethod {
-  if (value === "mercadopago" || value === "transfer") {
+  if (value === "mercadopago" || value === "transfer" || value === "cash") {
     return value;
   }
   throw new Error(`Método de pago desconocido: ${value}`);

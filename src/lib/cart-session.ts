@@ -2,6 +2,7 @@ import "server-only";
 
 import { cookies } from "next/headers";
 import { emptyCart, type CartLineSnapshot, type CartSnapshot } from "@/lib/cart-types";
+import { orderQuantityLimit } from "@/lib/order-limits";
 import { createCart, getCart, type CartView } from "@/services/cart.service";
 
 export const CART_COOKIE = "koi_cart";
@@ -31,6 +32,7 @@ export function toSnapshot(cart: CartView): CartSnapshot {
         unitPrice: line.unitPrice,
         quantity: line.quantity,
         lineTotal: line.lineTotal,
+        stock: line.stock,
         imageUrl: line.imageUrl,
         problem: line.problem,
         limit: lineLimit(line),
@@ -74,7 +76,6 @@ export async function clearCartCookie() {
 }
 
 function lineLimit(line: CartView["lines"][number]): number | null {
-  if (line.problem === "unavailable" || line.stock <= 0) return null;
-  if (line.maxPerOrder == null) return line.stock;
-  return Math.min(line.stock, line.maxPerOrder);
+  if (line.problem === "unavailable") return null;
+  return orderQuantityLimit(line.maxPerOrder);
 }

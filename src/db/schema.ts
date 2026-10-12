@@ -207,6 +207,7 @@ export const orders = pgTable(
     customerEmail: varchar("customer_email", { length: 254 }),
     fulfillmentMethod: varchar("fulfillment_method", { length: 20 }).notNull(),
     addressLine: text("address_line"),
+    geocodedAddress: text("geocoded_address"),
     city: varchar("city", { length: 80 }),
     province: varchar("province", { length: 80 }),
     latitude: numeric("latitude", { precision: 8, scale: 6 }),
@@ -236,7 +237,15 @@ export const orders = pgTable(
     ),
     check(
       "orders_payment_method_check",
-      sql`${table.paymentMethod} IN ('mercadopago', 'transfer')`,
+      sql`${table.paymentMethod} IN ('mercadopago', 'transfer', 'cash')`,
+    ),
+    check(
+      "orders_cash_pickup_check",
+      sql`${table.paymentMethod} <> 'cash' OR ${table.fulfillmentMethod} = 'pickup'`,
+    ),
+    check(
+      "orders_motorcycle_transfer_check",
+      sql`${table.fulfillmentMethod} <> 'motorcycle' OR ${table.paymentMethod} = 'transfer'`,
     ),
     check("orders_amounts_check", sql`${table.subtotal} >= 0 AND ${table.shippingCost} >= 0 AND ${table.total} >= 0`),
     check("orders_total_check", sql`${table.total} = ${table.subtotal} + ${table.shippingCost}`),
@@ -287,6 +296,7 @@ export const orderItems = pgTable(
     productName: varchar("product_name", { length: 160 }).notNull(),
     unitPrice: money("unit_price"),
     quantity: integer("quantity").notNull(),
+    madeToOrderQuantity: integer("made_to_order_quantity").notNull().default(0),
     lineTotal: money("line_total"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -294,6 +304,10 @@ export const orderItems = pgTable(
     index("order_items_order_id_idx").on(table.orderId),
     index("order_items_product_id_idx").on(table.productId),
     check("order_items_quantity_check", sql`${table.quantity} > 0`),
+    check(
+      "order_items_made_to_order_check",
+      sql`${table.madeToOrderQuantity} >= 0 AND ${table.madeToOrderQuantity} <= ${table.quantity}`,
+    ),
     check("order_items_unit_price_check", sql`${table.unitPrice} >= 0`),
     check("order_items_line_total_check", sql`${table.lineTotal} = ${table.unitPrice} * ${table.quantity}`),
   ],
@@ -317,7 +331,7 @@ export const payments = pgTable(
     uniqueIndex("payments_provider_external_id_idx")
       .on(table.provider, table.externalId)
       .where(sql`${table.externalId} IS NOT NULL`),
-    check("payments_provider_check", sql`${table.provider} IN ('mercadopago', 'transfer')`),
+    check("payments_provider_check", sql`${table.provider} IN ('mercadopago', 'transfer', 'cash')`),
     check("payments_status_check", sql`${table.status} IN ('pending', 'approved', 'rejected')`),
     check("payments_amount_check", sql`${table.amount} >= 0`),
   ],

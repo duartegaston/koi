@@ -55,6 +55,36 @@ export async function approveTransferOrder(publicCode: string): Promise<ServiceR
   }
 }
 
+export async function approveCashOrder(publicCode: string): Promise<ServiceResult<ApprovedOrder>> {
+  const order = await loadPendingOrder(publicCode);
+  if (!order.ok) return order;
+  if (order.value.paymentMethod !== "cash") {
+    return fail("not_cash", "Ese pedido no es en efectivo.");
+  }
+  if (order.value.fulfillmentMethod !== "pickup") {
+    return fail("cash_requires_pickup", "El efectivo es solo para retiro en el local.");
+  }
+
+  const payment = await findPaymentByOrderId(order.value.id);
+  if (!payment || payment.provider !== "cash") {
+    return fail("payment_missing", "El pedido no tiene un pago en efectivo.");
+  }
+
+  try {
+    const approved = await transaction(async (tx) => {
+      const settled = await settlePendingOrder(order.value, tx);
+      const paid = await setPaymentStatus(payment.id, "approved", tx);
+      if (!paid) {
+        throw new ApprovalRejected("payment_missing", "No se pudo acreditar el pago.");
+      }
+      return settled;
+    });
+    return { ok: true, value: approved };
+  } catch (error) {
+    return rejectionOrThrow(error);
+  }
+}
+
 export async function confirmMercadoPagoOrder(publicCode: string): Promise<ServiceResult<ApprovedOrder>> {
   const order = await loadPendingOrder(publicCode);
   if (!order.ok) return order;
@@ -117,7 +147,7 @@ async function settlePendingOrder(order: OrderRecord, tx: DbTransaction): Promis
   for (const item of order.items) {
     const updated = await decrementStock(item.productId, item.quantity, tx);
     if (!updated) {
-      throw new ApprovalRejected("insufficient_stock", `No hay stock suficiente de ${item.productName}.`);
+      throw new ApprovalRejected("product_missing", `No encontramos ${item.productName} para descontar el stock.`);
     }
   }
 

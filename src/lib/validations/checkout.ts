@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { mercadoPagoOffered } from "@/lib/payment-options";
 
 const phoneSchema = z
   .string()
@@ -21,7 +22,9 @@ export const placeOrderSchema = z
     customerEmail: z.union([z.literal(""), z.email("El email no es válido.").max(254)]),
     fulfillmentMethod: z.enum(["motorcycle", "pickup"], { message: "Elegí envío o retiro en el local." }),
     address: z.string().trim().max(240).optional().default(""),
-    paymentMethod: z.enum(["mercadopago", "transfer"], { message: "Elegí Mercado Pago o transferencia." }),
+    paymentMethod: z.enum(["mercadopago", "transfer", "cash"], {
+      message: "Elegí transferencia o efectivo.",
+    }),
   })
   .superRefine((data, ctx) => {
     if (data.fulfillmentMethod === "motorcycle" && data.address.trim().length < 8) {
@@ -29,6 +32,27 @@ export const placeOrderSchema = z
         code: "custom",
         path: ["address"],
         message: "Ingresá la dirección completa, dentro de Posadas.",
+      });
+    }
+    if (data.fulfillmentMethod === "motorcycle" && data.paymentMethod !== "transfer") {
+      ctx.addIssue({
+        code: "custom",
+        path: ["paymentMethod"],
+        message: "El envío se paga por transferencia.",
+      });
+    }
+    if (data.paymentMethod === "mercadopago" && !mercadoPagoOffered) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["paymentMethod"],
+        message: "Elegí transferencia o efectivo.",
+      });
+    }
+    if (data.paymentMethod === "cash" && data.fulfillmentMethod !== "pickup") {
+      ctx.addIssue({
+        code: "custom",
+        path: ["paymentMethod"],
+        message: "El efectivo es solo para retiro en el local.",
       });
     }
   });

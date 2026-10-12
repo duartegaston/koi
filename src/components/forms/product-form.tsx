@@ -1,8 +1,8 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { createProductAction, updateProductAction, type ProductFormState } from "@/actions/admin-products";
-import { Button } from "@/components/ui/button";
+import { Button, buttonClass } from "@/components/ui/button";
 import { InputField, SelectField, TextareaField } from "@/components/ui/field";
 import { maxImagesPerProduct } from "@/lib/images/detect";
 import { safeImageUrl } from "@/lib/safe-url";
@@ -102,6 +102,9 @@ export function ProductForm({ categories, product }: { categories: CategoryOptio
           Destacado
         </label>
       </div>
+      <p className="text-sm text-muted">
+        Los destacados aparecen en la página principal. Se muestran todos los que marques. Si no hay ninguno, aparecen los primeros 8 del catálogo.
+      </p>
 
       {product && product.images.length > 0 ? (
         <fieldset className="space-y-3">
@@ -127,24 +130,46 @@ export function ProductForm({ categories, product }: { categories: CategoryOptio
         </fieldset>
       ) : null}
 
-      <div className="space-y-1.5">
-        <label htmlFor="images" className="block text-sm font-medium">
-          {product ? "Agregar fotos" : "Fotos"}
-        </label>
-        <input
-          id="images"
-          name="images"
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          multiple
-          className="block w-full text-sm"
-        />
-        <p className="text-sm text-muted">JPEG, PNG o WebP. Hasta {maxImagesPerProduct} fotos, 2 MB cada una.</p>
-      </div>
+      <ImagePicker label={product ? "Agregar fotos" : "Fotos"} />
 
       <Button type="submit" disabled={pending}>
         {pending ? "Guardando" : product ? "Guardar cambios" : "Crear producto"}
       </Button>
     </form>
+  );
+}
+
+function ImagePicker({ label }: { label: string }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [names, setNames] = useState<string[]>([]);
+  const chosen = names.length === 0 ? "Sin archivos seleccionados" : names.length === 1 ? names[0] : `${names.length} archivos`;
+
+  return (
+    <div className="space-y-1.5">
+      <button
+        type="button"
+        className={buttonClass.secondary}
+        aria-describedby="images-status"
+        onClick={() => inputRef.current?.click()}
+      >
+        {label}
+      </button>
+      <input
+        ref={inputRef}
+        id="images"
+        name="images"
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        multiple
+        tabIndex={-1}
+        aria-label={label}
+        className="sr-only"
+        onChange={(event) => setNames(Array.from(event.target.files ?? []).map((file) => file.name))}
+      />
+      <p id="images-status" className="text-sm">
+        Elegir archivos · {chosen}
+      </p>
+      <p className="text-sm text-muted">JPEG, PNG o WebP. Hasta {maxImagesPerProduct} fotos, 2 MB cada una.</p>
+    </div>
   );
 }

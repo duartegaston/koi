@@ -8,8 +8,11 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { InputField } from "@/components/ui/field";
 import type { CartSnapshot } from "@/lib/cart-types";
+import { availabilityNote } from "@/lib/order-limits";
+import { mercadoPagoOffered } from "@/lib/payment-options";
+import { mapLink } from "@/lib/geo";
 import { addAmounts, formatArs } from "@/lib/money";
-import { safeMercadoPagoUrl, safeWhatsAppUrl } from "@/lib/safe-url";
+import { safeMapUrl, safeMercadoPagoUrl, safeWhatsAppUrl } from "@/lib/safe-url";
 
 const idleCheckoutState: CheckoutState = { status: "idle" };
 
@@ -75,9 +78,18 @@ function CheckoutFields({
   const canPickup = Boolean(store.pickupAddress);
   const canDeliver = store.deliveryConfigured;
   const canTransfer = Boolean(store.transferAlias);
-  const canMercadoPago = store.mercadoPagoConfigured;
-  const [fulfillment, setFulfillment] = useState<"motorcycle" | "pickup">(canPickup ? "pickup" : "motorcycle");
-  const [payment, setPayment] = useState<"mercadopago" | "transfer">(canMercadoPago ? "mercadopago" : "transfer");
+  const canMercadoPago = mercadoPagoOffered && store.mercadoPagoConfigured;
+  const initialFulfillment = canPickup ? "pickup" : "motorcycle";
+  const [fulfillment, setFulfillment] = useState<"motorcycle" | "pickup">(initialFulfillment);
+  const [payment, setPayment] = useState<"mercadopago" | "transfer" | "cash">(
+    initialFulfillment === "motorcycle"
+      ? "transfer"
+      : canMercadoPago
+        ? "mercadopago"
+        : canTransfer
+          ? "transfer"
+          : "cash",
+  );
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
@@ -85,6 +97,19 @@ function CheckoutFields({
   const [addressDirty, setAddressDirty] = useState(false);
   const errors = state.status === "error" ? state.fieldErrors : undefined;
   const blocked = cart.lines.some((line) => line.problem);
+  const canPay =
+    fulfillment === "motorcycle"
+      ? payment === "transfer" && canTransfer
+      : (payment === "mercadopago" && canMercadoPago) ||
+        (payment === "transfer" && canTransfer) ||
+        (payment === "cash" && canPickup);
+
+  function selectFulfillment(next: "motorcycle" | "pickup") {
+    setFulfillment(next);
+    if (next === "motorcycle") {
+      setPayment("transfer");
+    }
+  }
 
   useEffect(() => {
     if (state.status === "quoted") setAddressDirty(false);
@@ -164,7 +189,7 @@ function CheckoutFields({
               name="fulfillmentMethod"
               value="motorcycle"
               checked={fulfillment === "motorcycle"}
-              onChange={() => setFulfillment("motorcycle")}
+              onChange={() => selectFulfillment("motorcycle")}
               label="Envío"
             />
           ) : (
@@ -175,7 +200,7 @@ function CheckoutFields({
               name="fulfillmentMethod"
               value="pickup"
               checked={fulfillment === "pickup"}
-              onChange={() => setFulfillment("pickup")}
+              onChange={() => selectFulfillment("pickup")}
               label="Retiro en el local"
             />
           ) : null}
@@ -211,17 +236,22 @@ function CheckoutFields({
 
         <fieldset className="space-y-3">
           <legend className="font-label text-sm tracking-wide text-muted">Pago</legend>
-          {canMercadoPago ? (
-            <Radio
-              name="paymentMethod"
-              value="mercadopago"
-              checked={payment === "mercadopago"}
-              onChange={() => setPayment("mercadopago")}
-              label="Mercado Pago"
-            />
-          ) : (
-            <p className="text-sm text-muted">Mercado Pago todavía no está disponible.</p>
-          )}
+          {fulfillment === "motorcycle" ? (
+            <p className="text-sm text-muted">El envío se paga por transferencia.</p>
+          ) : null}
+          {fulfillment === "pickup" && mercadoPagoOffered ? (
+            canMercadoPago ? (
+              <Radio
+                name="paymentMethod"
+                value="mercadopago"
+                checked={payment === "mercadopago"}
+                onChange={() => setPayment("mercadopago")}
+                label="Mercado Pago"
+              />
+            ) : (
+              <p className="text-sm text-muted">Mercado Pago todavía no está disponible.</p>
+            )
+          ) : null}
           {canTransfer ? (
             <Radio
               name="paymentMethod"
@@ -233,8 +263,20 @@ function CheckoutFields({
           ) : (
             <p className="text-sm text-muted">La transferencia todavía no tiene un alias cargado.</p>
           )}
+          {fulfillment === "pickup" ? (
+            <Radio
+              name="paymentMethod"
+              value="cash"
+              checked={payment === "cash"}
+              onChange={() => setPayment("cash")}
+              label="Efectivo al retirar"
+            />
+          ) : null}
           {payment === "transfer" && store.transferAlias ? (
             <p className="border border-line px-4 py-3 text-sm">Alias: {store.transferAlias}</p>
+          ) : null}
+          {payment === "cash" ? (
+            <p className="border border-line px-4 py-3 text-sm">Pagás en efectivo cuando retirás en el local.</p>
           ) : null}
           {errors?.paymentMethod?.[0] ? <p className="text-sm">{errors.paymentMethod[0]}</p> : null}
         </fieldset>
@@ -250,7 +292,7 @@ function CheckoutFields({
           </p>
         ) : null}
 
-        <IntentButton intent="place" disabled={blocked || (!canMercadoPago && !canTransfer)}>
+        <IntentButton intent="place" disabled={blocked || !canPay}>
           {payment === "mercadopago" && canMercadoPago ? "Continuar al pago" : "Confirmar pedido"}
         </IntentButton>
       </form>
@@ -263,6 +305,9 @@ function CheckoutFields({
               <span>
                 {line.quantity} × {line.name}
                 {line.problem ? <span className="mt-1 block text-xs">Revisá esta línea en el carrito.</span> : null}
+                {availabilityNote(line.quantity, line.stock) ? (
+                  <span className="mt-1 block text-xs">{availabilityNote(line.quantity, line.stock)}</span>
+                ) : null}
               </span>
               <span>{formatArs(line.lineTotal)}</span>
             </li>
@@ -292,11 +337,18 @@ function QuoteSummary({ quote }: { quote: DeliveryQuoteView }) {
   const distance = Number.isFinite(kilometers)
     ? new Intl.NumberFormat("es-AR", { maximumFractionDigits: 1 }).format(kilometers)
     : null;
+  const mapUrl = mapLink(Number(quote.latitude), Number(quote.longitude));
 
   return (
     <div className="border border-line px-4 py-3 text-sm" role="status">
-      <p>{quote.formattedAddress}</p>
-      <p className="mt-1 text-muted">
+      <p>Escribiste: {quote.enteredAddress}</p>
+      <p className="mt-2">La ubicamos en: {quote.formattedAddress}</p>
+      {mapUrl ? (
+        <a href={mapUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex underline underline-offset-4">
+          Ver en el mapa
+        </a>
+      ) : null}
+      <p className="mt-2 text-muted">
         {quote.zoneName}
         {distance ? ` · ${distance} km` : ""} · {formatArs(quote.price)}
       </p>
@@ -308,6 +360,8 @@ function OrderSuccess({ order }: { order: Extract<CheckoutState, { status: "succ
   const whatsAppUrl = safeWhatsAppUrl(order.whatsAppUrl);
   const checkoutUrl = order.checkoutUrl ? safeMercadoPagoUrl(order.checkoutUrl) : null;
   const payingOnline = order.paymentMethod === "mercadopago";
+  const payingCash = order.paymentMethod === "cash";
+  const mapUrl = order.mapUrl ? safeMapUrl(order.mapUrl) : null;
 
   useEffect(() => {
     if (checkoutUrl) window.location.assign(checkoutUrl);
@@ -323,8 +377,21 @@ function OrderSuccess({ order }: { order: Extract<CheckoutState, { status: "succ
           : "El pedido incluye envío."}{" "}
         {payingOnline
           ? "Te estamos llevando a Mercado Pago. Si no abre, usá el botón de abajo."
-          : "Enviá el comprobante de la transferencia por WhatsApp."}
+          : payingCash
+            ? "Pagás en efectivo al retirar. Enviá el pedido por WhatsApp para que el local lo anote."
+            : "Enviá el comprobante de la transferencia por WhatsApp."}
       </p>
+      {order.fulfillmentMethod === "motorcycle" && order.addressLine ? (
+        <div className="mt-4 border border-line px-4 py-3 text-sm">
+          <p>Escribiste: {order.addressLine}</p>
+          {order.geocodedAddress ? <p className="mt-2">La ubicamos en: {order.geocodedAddress}</p> : null}
+          {mapUrl ? (
+            <a href={mapUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex underline underline-offset-4">
+              Ver en el mapa
+            </a>
+          ) : null}
+        </div>
+      ) : null}
       {order.paymentMethod === "transfer" && order.transferAlias ? (
         <p className="mt-4 border border-line px-4 py-3 text-sm">Alias: {order.transferAlias}</p>
       ) : null}

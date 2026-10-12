@@ -8,10 +8,13 @@ import { placeOrder } from "@/services/checkout.service";
 import { quoteDelivery } from "@/services/shipping.service";
 
 export type DeliveryQuoteView = {
+  enteredAddress: string;
   formattedAddress: string;
   zoneName: string;
   price: string;
   distanceKm: string;
+  latitude: string;
+  longitude: string;
 };
 
 export type PlacedOrderView = {
@@ -20,8 +23,11 @@ export type PlacedOrderView = {
   shippingCost: string;
   total: string;
   fulfillmentMethod: "motorcycle" | "pickup";
-  paymentMethod: "mercadopago" | "transfer";
+  paymentMethod: "mercadopago" | "transfer" | "cash";
   transferAlias: string | null;
+  addressLine: string | null;
+  geocodedAddress: string | null;
+  mapUrl: string | null;
   whatsAppUrl: string;
   checkoutUrl: string | null;
 };
@@ -75,10 +81,13 @@ export async function submitCheckout(prev: CheckoutState, formData: FormData): P
     return {
       status: "quoted",
       quote: {
+        enteredAddress: quote.value.enteredAddress,
         formattedAddress: quote.value.formattedAddress,
         zoneName: quote.value.shippingZoneName,
         price: quote.value.price,
         distanceKm: quote.value.distanceKm,
+        latitude: quote.value.latitude,
+        longitude: quote.value.longitude,
       },
     };
   }

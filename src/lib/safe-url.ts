@@ -19,6 +19,16 @@ export function safeMercadoPagoUrl(value: string): string | null {
   }
 }
 
+export function safeMapUrl(value: string): string | null {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:" || url.hostname !== "www.openstreetmap.org") return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
 function isMercadoPagoHost(hostname: string): boolean {
   return /(^|\.)mercadopago\.com(\.[a-z]{2})?$/.test(hostname);
 }

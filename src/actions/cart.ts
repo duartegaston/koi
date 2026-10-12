@@ -10,6 +10,7 @@ export type CartActionState = { status: "idle" } | { status: "success" } | { sta
 export async function addToCart(_prev: CartActionState, formData: FormData): Promise<CartActionState> {
   const parsed = addToCartSchema.safeParse({
     productId: String(formData.get("productId") ?? ""),
+    quantity: String(formData.get("quantity") ?? "1"),
   });
   if (!parsed.success) {
     return { status: "error", message: "No pudimos agregar ese producto." };
@@ -17,7 +18,7 @@ export async function addToCart(_prev: CartActionState, formData: FormData): Pro
 
   const cart = await ensureOpenCart();
   const current = cart.lines.find((line) => line.productId === parsed.data.productId);
-  const updated = await changeQuantity(cart.id, parsed.data.productId, (current?.quantity ?? 0) + 1);
+  const updated = await changeQuantity(cart.id, parsed.data.productId, (current?.quantity ?? 0) + parsed.data.quantity);
   if (!updated.ok) {
     return { status: "error", message: updated.message };
   }

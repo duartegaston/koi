@@ -2,19 +2,20 @@ import "server-only";
 
 import { getDashboardNumbers, listRecentOrders } from "@/data-access/admin-order.repository";
 import { listLowStockProducts } from "@/data-access/admin-product.repository";
+import type { AdminPeriod } from "@/lib/admin-period";
 import { lowStockThreshold } from "@/lib/stock";
 
-export async function getAdminDashboard() {
+export async function getAdminDashboard(period: AdminPeriod) {
   const [numbers, lowStock, recent] = await Promise.all([
-    getDashboardNumbers(),
+    getDashboardNumbers({ fromDate: period.fromDate, toDate: period.toDate }),
     listLowStockProducts(lowStockThreshold, 8),
     listRecentOrders(8),
   ]);
 
   return {
     pendingTransfers: Number(numbers.pendingTransfers),
-    collectedToday: normalizeMoney(String(numbers.collectedToday)),
-    ordersToday: Number(numbers.ordersToday),
+    collected: normalizeMoney(String(numbers.collected)),
+    orderCount: Number(numbers.orderCount),
     lowStock,
     recent,
   };

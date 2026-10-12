@@ -10,6 +10,7 @@ import {
 } from "@/data-access/cart.repository";
 import { listProductsByIds } from "@/data-access/product.repository";
 import { multiplyAmount, addAmounts } from "@/lib/money";
+import { madeToOrderUnits, orderQuantityLimit } from "@/lib/order-limits";
 import { fail, type ServiceResult } from "./result";
 
 const CART_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -23,6 +24,7 @@ export type CartLineView = {
   lineTotal: string;
   stock: number;
   maxPerOrder: number | null;
+  madeToOrder: number;
   imageUrl: string | null;
   problem: "unavailable" | "exceeds_limit" | null;
 };
@@ -133,6 +135,7 @@ export function toCartView(cart: { id: string; expiresAt: Date }, lines: CartLin
       lineTotal: multiplyAmount(line.unitPrice, line.quantity),
       stock: line.stock,
       maxPerOrder: line.maxPerOrder,
+      madeToOrder: madeToOrderUnits(line.quantity, line.stock),
       imageUrl: line.imageUrl,
       problem,
     } satisfies CartLineView;
@@ -147,16 +150,10 @@ export function toCartView(cart: { id: string; expiresAt: Date }, lines: CartLin
 }
 
 function sellableLimit(product: {
-  stock: number;
   maxPerOrder: number | null;
   isActive: boolean;
   deletedAt: Date | null;
 }): number | null {
-  if (!product.isActive || product.deletedAt || product.stock <= 0) {
-    return null;
-  }
-  if (product.maxPerOrder == null) {
-    return product.stock;
-  }
-  return Math.min(product.stock, product.maxPerOrder);
+  if (!product.isActive || product.deletedAt) return null;
+  return orderQuantityLimit(product.maxPerOrder);
 }

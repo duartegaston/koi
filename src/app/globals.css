@@ -114,6 +114,28 @@
   }
 }
 
+.step-card {
+  animation: card-in 560ms ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step-card {
+    animation: none;
+  }
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @keyframes marquee {
   from {
     transform: translateX(0);

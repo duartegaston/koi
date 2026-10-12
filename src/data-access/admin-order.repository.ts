@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq, inArray, lt, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, lt, or, sql } from "drizzle-orm";
 import { schema } from "@/db";
 import type { FulfillmentMethod, OrderStatus, PaymentMethod } from "./order.repository";
 import { executor, type DbExecutor } from "./executor";
@@ -52,7 +52,7 @@ export async function listAdminOrders(query: OrderListQuery, db?: DbExecutor): P
       and(
         query.status ? eq(orders.status, query.status) : undefined,
         query.paymentMethod ? eq(orders.paymentMethod, query.paymentMethod) : undefined,
-        query.code ? eq(orders.publicCode, query.code) : undefined,
+        query.code ? ilike(orders.publicCode, containsPattern(query.code)) : undefined,
         cursor,
       ),
     )
@@ -94,20 +94,21 @@ export async function markOrderFulfilled(orderId: string, db?: DbExecutor) {
   return row ?? null;
 }
 
-export async function getDashboardNumbers(db?: DbExecutor) {
-  const dayStart = sql`(date_trunc('day', now() AT TIME ZONE 'America/Argentina/Buenos_Aires') AT TIME ZONE 'America/Argentina/Buenos_Aires')`;
+export async function getDashboardNumbers(range: { fromDate: string; toDate: string }, db?: DbExecutor) {
+  const from = sql`(${range.fromDate}::date::timestamp AT TIME ZONE 'America/Argentina/Buenos_Aires')`;
+  const to = sql`((${range.toDate}::date + interval '1 day')::timestamp AT TIME ZONE 'America/Argentina/Buenos_Aires')`;
   const [row] = await executor(db)
     .select({
       pendingTransfers: sql<string>`count(*) filter (where ${orders.status} = 'pending_payment' and ${orders.paymentMethod} = 'transfer')`,
-      collectedToday: sql<string>`coalesce(sum(${orders.total}) filter (where ${orders.status} in ('paid', 'fulfilled') and ${orders.createdAt} >= ${dayStart}), 0)`,
-      ordersToday: sql<string>`count(*) filter (where ${orders.createdAt} >= ${dayStart})`,
+      collected: sql<string>`coalesce(sum(${orders.total}) filter (where ${orders.status} in ('paid', 'fulfilled') and ${orders.createdAt} >= ${from} and ${orders.createdAt} < ${to}), 0)`,
+      orderCount: sql<string>`count(*) filter (where ${orders.createdAt} >= ${from} and ${orders.createdAt} < ${to})`,
     })
     .from(orders);
   return (
     row ?? {
       pendingTransfers: "0",
-      collectedToday: "0.00",
-      ordersToday: "0",
+      collected: "0.00",
+      orderCount: "0",
     }
   );
 }
@@ -133,13 +134,18 @@ export async function listRecentOrders(limit: number, db?: DbExecutor) {
   }));
 }
 
+function containsPattern(value: string): string {
+  const escaped = value.replace(/[\\%_]/g, (char) => `\\${char}`);
+  return `%${escaped}%`;
+}
+
 function asOrderStatus(value: string): OrderStatus {
   if (value === "pending_payment" || value === "paid" || value === "cancelled" || value === "fulfilled") return value;
   throw new Error(`Estado de pedido desconocido: ${value}`);
 }
 
 function asPaymentMethod(value: string): PaymentMethod {
-  if (value === "mercadopago" || value === "transfer") return value;
+  if (value === "mercadopago" || value === "transfer" || value === "cash") return value;
   throw new Error(`Método de pago desconocido: ${value}`);
 }
 

@@ -1,21 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useRef, useState } from "react";
-import { useFormStatus } from "react-dom";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { setCartQuantity, type CartActionState } from "@/actions/cart";
 import { ProductImage } from "@/components/product/product-image";
 import { buttonClass } from "@/components/ui/button";
 import type { CartLineSnapshot, CartSnapshot } from "@/lib/cart-types";
-import { formatArs } from "@/lib/money";
+import { formatArs, multiplyAmount } from "@/lib/money";
+import { availabilityNote } from "@/lib/order-limits";
 import { cn } from "@/lib/utils";
 
 const idleCartState: CartActionState = { status: "idle" };
 
 export function CartDrawer({ cart }: { cart: CartSnapshot }) {
+  const pathname = usePathname();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const previousCount = useRef(cart.itemCount);
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     if (cart.itemCount > previousCount.current) setOpen(true);
@@ -69,9 +75,15 @@ export function CartDrawer({ cart }: { cart: CartSnapshot }) {
           {cart.lines.length === 0 ? (
             <div className="flex flex-1 flex-col items-start justify-center gap-4 px-5">
               <p>El carrito está vacío.</p>
-              <Link href="/" className="text-sm underline underline-offset-4" onClick={() => setOpen(false)}>
+              <a
+                href="/tienda"
+                className="text-sm underline underline-offset-4"
+                onClick={() => {
+                  window.location.assign("/tienda");
+                }}
+              >
                 Ver la tienda
-              </Link>
+              </a>
             </div>
           ) : (
             <>
@@ -110,13 +122,86 @@ export function CartDrawer({ cart }: { cart: CartSnapshot }) {
 }
 
 function CartLine({ line }: { line: CartLineSnapshot }) {
-  const [state, action] = useActionState(setCartQuantity, idleCartState);
+  const [quantity, setQuantity] = useState(line.quantity);
+  const [error, setError] = useState<string | null>(null);
+  const [removed, setRemoved] = useState(false);
+  const desired = useRef(line.quantity);
+  const acked = useRef(line.quantity);
+  const flight = useRef<Promise<void> | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const problem =
     line.problem === "unavailable"
       ? "Ya no está disponible."
       : line.problem === "exceeds_limit"
         ? "La cantidad supera lo que podés pedir."
         : null;
+  const note = availabilityNote(quantity, line.stock);
+  const atCap = line.limit == null || quantity >= line.limit;
+
+  useEffect(() => {
+    return () => {
+      if (timer.current) clearTimeout(timer.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (flight.current || timer.current) return;
+    if (line.quantity !== acked.current && desired.current !== line.quantity) return;
+    setQuantity(line.quantity);
+    desired.current = line.quantity;
+    acked.current = line.quantity;
+    setRemoved(false);
+  }, [line.productId, line.quantity]);
+
+  function schedule(next: number, immediate = false) {
+    const clamped = line.limit == null ? Math.max(0, next) : Math.min(Math.max(0, next), line.limit);
+    setQuantity(clamped);
+    desired.current = clamped;
+    setError(null);
+    if (clamped === 0) setRemoved(true);
+    if (timer.current) clearTimeout(timer.current);
+    const run = () => {
+      timer.current = null;
+      void sync();
+    };
+    if (immediate) run();
+    else timer.current = setTimeout(run, 180);
+  }
+
+  async function sync() {
+    if (flight.current) {
+      await flight.current;
+      if (desired.current !== acked.current) await sync();
+      return;
+    }
+
+    const job = (async () => {
+      while (desired.current !== acked.current) {
+        const value = desired.current;
+        const data = new FormData();
+        data.set("productId", line.productId);
+        data.set("quantity", String(value));
+        const result = await setCartQuantity(idleCartState, data);
+        if (result.status === "error") {
+          setError(result.message);
+          setRemoved(false);
+          setQuantity(acked.current);
+          desired.current = acked.current;
+          return;
+        }
+        acked.current = value;
+      }
+    })();
+
+    flight.current = job;
+    try {
+      await job;
+    } finally {
+      flight.current = null;
+    }
+  }
+
+  if (removed) return null;
 
   return (
     <div className="grid grid-cols-[4.5rem_1fr] gap-4 px-5 py-4">
@@ -128,75 +213,52 @@ function CartLine({ line }: { line: CartLineSnapshot }) {
           <Link href={`/producto/${line.slug}`} className="text-sm tracking-tight">
             {line.name}
           </Link>
-          <p className="text-sm">{formatArs(line.lineTotal)}</p>
+          <p className="text-sm">{formatArs(multiplyAmount(line.unitPrice, quantity))}</p>
         </div>
         <p className="mt-1 text-xs text-muted">{formatArs(line.unitPrice)}</p>
         {problem ? <p className="mt-2 text-sm">{problem}</p> : null}
-        {state.status === "error" ? (
+        {note ? (
+          <p role="status" className="mt-2 text-sm">
+            {note}
+          </p>
+        ) : null}
+        {error ? (
           <p className="mt-2 text-sm" role="alert">
-            {state.message}
+            {error}
           </p>
         ) : null}
         <div className="mt-auto flex items-center gap-2 pt-3">
-          <form action={action}>
-            <input type="hidden" name="productId" value={line.productId} />
-            <input type="hidden" name="quantity" value={String(Math.max(0, line.quantity - 1))} />
-            <QuantityButton label={`Quitar uno de ${line.name}`}>−</QuantityButton>
-          </form>
-          <span className="min-w-6 text-center text-sm" aria-label={`Cantidad: ${line.quantity}`}>
-            {line.quantity}
+          <button
+            type="button"
+            aria-label={`Quitar uno de ${line.name}`}
+            onClick={() => schedule(desired.current - 1)}
+            className="inline-flex h-11 w-11 items-center justify-center border border-line text-lg"
+          >
+            −
+          </button>
+          <span className="min-w-6 text-center text-sm tabular-nums" aria-live="polite" aria-label={`Cantidad: ${quantity}`}>
+            {quantity}
           </span>
-          <form action={action}>
-            <input type="hidden" name="productId" value={line.productId} />
-            <input type="hidden" name="quantity" value={String(line.quantity + 1)} />
-            <QuantityButton label={`Agregar uno de ${line.name}`} disabled={line.limit == null || line.quantity >= line.limit}>
-              +
-            </QuantityButton>
-          </form>
-          <form action={action} className="ml-auto">
-            <input type="hidden" name="productId" value={line.productId} />
-            <input type="hidden" name="quantity" value="0" />
-            <RemoveButton name={line.name} />
-          </form>
+          <button
+            type="button"
+            aria-label={`Agregar uno de ${line.name}`}
+            disabled={atCap}
+            onClick={() => schedule(desired.current + 1)}
+            className="inline-flex h-11 w-11 items-center justify-center border border-line text-lg disabled:opacity-40"
+          >
+            +
+          </button>
+          <button
+            type="button"
+            aria-label={`Quitar ${line.name} del carrito`}
+            onClick={() => schedule(0, true)}
+            className="ml-auto h-11 px-2 text-xs underline underline-offset-4"
+          >
+            Quitar
+          </button>
         </div>
       </div>
     </div>
-  );
-}
-
-function QuantityButton({
-  label,
-  disabled,
-  children,
-}: {
-  label: string;
-  disabled?: boolean;
-  children: React.ReactNode;
-}) {
-  const { pending } = useFormStatus();
-  return (
-    <button
-      type="submit"
-      aria-label={label}
-      disabled={disabled || pending}
-      className="inline-flex h-11 w-11 items-center justify-center border border-line text-lg disabled:opacity-40"
-    >
-      {children}
-    </button>
-  );
-}
-
-function RemoveButton({ name }: { name: string }) {
-  const { pending } = useFormStatus();
-  return (
-    <button
-      type="submit"
-      aria-label={`Quitar ${name} del carrito`}
-      disabled={pending}
-      className="h-11 px-2 text-xs underline underline-offset-4 disabled:opacity-40"
-    >
-      {pending ? "Quitando…" : "Quitar"}
-    </button>
   );
 }
 

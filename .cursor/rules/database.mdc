@@ -9,7 +9,7 @@ alwaysApply: false
 PostgreSQL con Drizzle y el driver `postgres` (`drizzle-orm/postgres-js`). La conexión es `DATABASE_URL`. No uses `@neondatabase/serverless` ni un cliente de Neon.
 
 - Schema y tipos inferidos en `src/db/schema.ts`. Las consultas van en `src/data-access/` y reciben un `DbExecutor` opcional para compartir transacción. Migraciones con `npm run db:generate` y `npm run db:migrate`.
-- `getDb()` ya configura el cliente: `prepare: false`, `fetch_types: false`, `max_pipeline: 0` y `max: 1` fuera de `next dev` (`max: 4` en desarrollo). No abras otro pool ni subas `max_pipeline`: el pooler de Supabase en modo transaction se cuelga si dos consultas salen juntas por el mismo socket.
+- `getDb()` sirve para consultas: `prepare: false`, `fetch_types: false`, `max_pipeline: 0` y `max: 1` fuera de `next dev` (`max: 4` en desarrollo). No subas `max_pipeline` en ese cliente: el pooler de Supabase en modo transaction se cuelga si dos consultas salen juntas por el mismo socket. Las transacciones van por `getTransactionDb()` (`max: 1`, `max_pipeline: 1`), porque con pipeline 0 `sql.begin` no reserva la conexión.
 - Consultas selectivas: columnas explícitas, filtros en SQL, sin N+1.
 
 ```ts

@@ -10,8 +10,10 @@ import {
   type PaymentMethod,
 } from "@/data-access/order.repository";
 import { insertPayment, savePaymentResult } from "@/data-access/payment.repository";
+import { mapLink } from "@/lib/geo";
 import { addAmounts, multiplyAmount, toCents } from "@/lib/money";
 import { getServerEnv } from "@/lib/env";
+import { mercadoPagoOffered } from "@/lib/payment-options";
 import { readStoreConfig } from "@/lib/store-config";
 import { orderWhatsAppText, whatsAppLink } from "@/lib/whatsapp/link";
 import { toCartView } from "./cart.service";
@@ -37,6 +39,9 @@ export type PlacedOrder = {
   fulfillmentMethod: FulfillmentMethod;
   paymentMethod: PaymentMethod;
   transferAlias: string | null;
+  addressLine: string | null;
+  geocodedAddress: string | null;
+  mapUrl: string | null;
   whatsAppUrl: string;
   checkoutUrl: string | null;
 };
@@ -78,14 +83,23 @@ export async function placeOrder(input: PlaceOrderInput): Promise<ServiceResult<
     return fail("fulfillment_invalid", "Elegí envío o retiro en el local.");
   }
 
+  if (input.fulfillmentMethod === "motorcycle" && input.paymentMethod !== "transfer") {
+    return fail("delivery_requires_transfer", "El envío se paga por transferencia.");
+  }
+  if (input.paymentMethod === "cash" && input.fulfillmentMethod !== "pickup") {
+    return fail("cash_requires_pickup", "El efectivo es solo para retiro en el local.");
+  }
   if (input.paymentMethod === "transfer" && !store.transferAlias) {
     return fail("transfer_alias_missing", "La transferencia todavía no tiene un alias cargado.");
+  }
+  if (input.paymentMethod === "mercadopago" && !mercadoPagoOffered) {
+    return fail("mercadopago_unavailable", "Elegí transferencia o efectivo.");
   }
   if (input.paymentMethod === "mercadopago" && !store.mercadoPagoConfigured) {
     return fail("mercadopago_not_configured", "Mercado Pago todavía no está disponible.");
   }
-  if (input.paymentMethod !== "transfer" && input.paymentMethod !== "mercadopago") {
-    return fail("payment_invalid", "Elegí Mercado Pago o transferencia.");
+  if (input.paymentMethod !== "transfer" && input.paymentMethod !== "mercadopago" && input.paymentMethod !== "cash") {
+    return fail("payment_invalid", "Elegí transferencia o efectivo.");
   }
 
   try {
@@ -109,7 +123,8 @@ export async function placeOrder(input: PlaceOrderInput): Promise<ServiceResult<
           customerPhone: customer.value.phone,
           customerEmail: customer.value.email,
           fulfillmentMethod: input.fulfillmentMethod,
-          addressLine: delivery?.formattedAddress,
+          addressLine: delivery ? (input.address ?? "").trim() : undefined,
+          geocodedAddress: delivery?.formattedAddress,
           city: delivery?.city,
           province: delivery?.province,
           latitude: delivery?.latitude,
@@ -131,6 +146,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<ServiceResult<
           productName: line.name,
           unitPrice: line.unitPrice,
           quantity: line.quantity,
+          madeToOrderQuantity: line.madeToOrder,
           lineTotal: multiplyAmount(line.unitPrice, line.quantity),
         })),
         tx,
@@ -179,6 +195,9 @@ export async function placeOrder(input: PlaceOrderInput): Promise<ServiceResult<
       checkoutUrl = preference.value.checkoutUrl;
     }
 
+    const mapUrl = delivery ? mapLink(Number(delivery.latitude), Number(delivery.longitude)) : null;
+    const enteredAddress = delivery ? (input.address ?? "").trim() : null;
+
     const whatsAppUrl = whatsAppLink(
       getServerEnv().WHATSAPP_NUMBER,
       orderWhatsAppText({
@@ -189,9 +208,12 @@ export async function placeOrder(input: PlaceOrderInput): Promise<ServiceResult<
           name: line.name,
           quantity: line.quantity,
           lineTotal: line.lineTotal,
+          madeToOrder: line.madeToOrder,
         })),
         fulfillmentMethod: input.fulfillmentMethod,
-        addressLine: delivery?.formattedAddress ?? null,
+        addressLine: enteredAddress,
+        geocodedAddress: delivery?.formattedAddress ?? null,
+        mapUrl,
         shippingCost: placed.shippingCost,
         total: placed.total,
         paymentMethod: input.paymentMethod,
@@ -210,6 +232,9 @@ export async function placeOrder(input: PlaceOrderInput): Promise<ServiceResult<
         fulfillmentMethod: input.fulfillmentMethod,
         paymentMethod: input.paymentMethod,
         transferAlias: input.paymentMethod === "transfer" ? store.transferAlias : null,
+        addressLine: enteredAddress,
+        geocodedAddress: delivery?.formattedAddress ?? null,
+        mapUrl,
         whatsAppUrl,
         checkoutUrl,
       },

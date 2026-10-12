@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 
 type CategoryLink = { name: string; slug: string };
 
-export function MobileMenu({ categories }: { categories: CategoryLink[] }) {
+export function MobileMenu({ categories, contactHref }: { categories: CategoryLink[]; contactHref: string }) {
   const pathname = usePathname();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(false);
@@ -52,14 +52,17 @@ export function MobileMenu({ categories }: { categories: CategoryLink[] }) {
             </button>
           </div>
           <nav className="flex flex-col px-2 py-4">
+            <Link href="/tienda" className="px-2 py-3 font-display text-3xl">
+              Todos
+            </Link>
             {categories.map((category) => (
               <Link key={category.slug} href={`/categoria/${category.slug}`} className="px-2 py-3 font-display text-3xl">
                 {category.name}
               </Link>
             ))}
-            <Link href="/contacto" className="px-2 py-3 font-display text-3xl">
+            <a href={contactHref} target="_blank" rel="noopener noreferrer" className="px-2 py-3 font-display text-3xl">
               Contacto
-            </Link>
+            </a>
           </nav>
         </div>
       </dialog>

@@ -16,6 +16,7 @@ export type StoreOptions = {
 };
 
 export type DeliveryQuote = {
+  enteredAddress: string;
   formattedAddress: string;
   city: string;
   province: string;
@@ -78,6 +79,7 @@ export async function quoteDelivery(address: string): Promise<ServiceResult<Deli
   return {
     ok: true,
     value: {
+      enteredAddress: trimmed,
       formattedAddress: place.formattedAddress,
       city: store.city,
       province: store.province,

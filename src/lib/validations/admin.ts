@@ -56,9 +56,40 @@ export const orderListSchema = z.object({
     .string()
     .trim()
     .toUpperCase()
-    .regex(/^KOI-[A-F0-9]{8}$/, "El código no es válido.")
+    .regex(/^[A-Z0-9-]{1,16}$/, "El código no es válido.")
     .optional(),
   cursor: z.string().trim().min(1).optional(),
+});
+
+const categoryName = z.string().trim().min(1, "Ingresá el nombre.").max(120);
+const categoryDescription = z
+  .string()
+  .trim()
+  .max(2000, "La descripción es demasiado larga.")
+  .transform((value) => (value.length === 0 ? null : value));
+
+export const categoryCreateSchema = z.object({
+  name: categoryName,
+  description: categoryDescription,
+});
+
+export const categoryUpdateSchema = z.object({
+  categoryId: z.uuid(),
+  name: categoryName,
+  slug: z
+    .string()
+    .trim()
+    .min(1, "Ingresá el slug.")
+    .max(140)
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Usá minúsculas, números y guiones."),
+  description: categoryDescription,
+  sortOrder: z.coerce.number().int("El orden tiene que ser un entero.").min(0).max(10_000),
+  isActive: z.boolean(),
+});
+
+export const categoryDeleteSchema = z.object({
+  categoryId: z.uuid(),
+  reassignTo: z.union([z.literal(""), z.uuid("Elegí una categoría.")]),
 });
 
 export type ProductFormInput = z.output<typeof productFormSchema>;
