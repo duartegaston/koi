@@ -20,9 +20,10 @@ export function distanceKm(from: Coordinates, to: Coordinates): number {
 export function mapLink(latitude: number, longitude: number): string | null {
   if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
   if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return null;
-  const lat = latitude.toFixed(6);
-  const lon = longitude.toFixed(6);
-  return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=17/${lat}/${lon}`;
+  const url = new URL("https://www.google.com/maps/search/");
+  url.searchParams.set("api", "1");
+  url.searchParams.set("query", `${latitude.toFixed(6)},${longitude.toFixed(6)}`);
+  return url.toString();
 }
 
 function radians(degrees: number): number {

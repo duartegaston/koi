@@ -19,10 +19,16 @@ export function safeMercadoPagoUrl(value: string): string | null {
   }
 }
 
+const googleMapQuery = /^-?\d{1,3}\.\d{1,6},-?\d{1,3}\.\d{1,6}$/;
+
+/** Solo el enlace de coordenadas que arma `mapLink`. */
 export function safeMapUrl(value: string): string | null {
   try {
     const url = new URL(value);
-    if (url.protocol !== "https:" || url.hostname !== "www.openstreetmap.org") return null;
+    const query = url.searchParams.get("query");
+    const keys = [...url.searchParams.keys()];
+    if (url.protocol !== "https:" || url.hostname !== "www.google.com" || url.pathname !== "/maps/search/") return null;
+    if (keys.length !== 2 || url.searchParams.get("api") !== "1" || !query || !googleMapQuery.test(query)) return null;
     return url.toString();
   } catch {
     return null;
