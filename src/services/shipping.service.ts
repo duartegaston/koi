@@ -2,7 +2,7 @@ import "server-only";
 
 import { findShippingZone } from "@/data-access/shipping.repository";
 import { distanceKm } from "@/lib/geo";
-import { geocodeAddress } from "@/lib/geocoding/nominatim";
+import { geocodeAddress } from "@/lib/geocoding/google";
 import { isInsidePosadas, placeNameIncludes } from "@/lib/geocoding/posadas";
 import { readStoreConfig } from "@/lib/store-config";
 import { fail, type ServiceResult } from "./result";

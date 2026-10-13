@@ -92,7 +92,8 @@
 .cart-dialog {
   position: fixed;
   inset: 0 0 0 auto;
-  width: min(100vw, 26rem);
+  width: min(100%, 26rem);
+  max-width: 100%;
   border-left: 1px solid var(--koi-line);
 }
 

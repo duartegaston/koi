@@ -38,6 +38,7 @@ const serverEnvSchema = z
     STORE_ORIGIN_LONGITUDE: optionalCoordinate(180),
     MERCADOPAGO_ACCESS_TOKEN: optionalText(500),
     MERCADOPAGO_WEBHOOK_SECRET: optionalText(200),
+    GOOGLE_MAPS_API_KEY: optionalText(200),
     ADMIN_USERNAME: z.string().trim().min(1).max(80),
     ADMIN_PASSWORD_HASH: z.string().regex(/^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/),
     ADMIN_SESSION_SECRET: z.string().min(32),

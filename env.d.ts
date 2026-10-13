@@ -11,6 +11,7 @@ interface CloudflareEnv {
   STORE_ORIGIN_LONGITUDE?: string;
   MERCADOPAGO_ACCESS_TOKEN?: string;
   MERCADOPAGO_WEBHOOK_SECRET?: string;
+  GOOGLE_MAPS_API_KEY?: string;
   ADMIN_USERNAME: string;
   ADMIN_PASSWORD_HASH: string;
   ADMIN_SESSION_SECRET: string;

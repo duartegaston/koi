@@ -164,6 +164,17 @@ export function AddressSuggest({
           {status === "ready" && needsHeight ? (
             <p className="border-t border-line px-4 py-3 text-sm text-muted">Agregá la altura, por ejemplo 1250.</p>
           ) : null}
+          {status === "ready" ? (
+            <p className="flex justify-end border-t border-line px-4 py-2">
+              <img
+                src="https://maps.gstatic.com/mapfiles/api-3/images/powered-by-google-on-white3.png"
+                alt="Powered by Google"
+                width={120}
+                height={14}
+                className="h-3.5 w-auto"
+              />
+            </p>
+          ) : null}
         </div>
       ) : null}
     </div>
@@ -179,7 +190,7 @@ function readSuggestions(payload: unknown): Suggestion[] {
   for (const item of payload.suggestions) {
     if (!item || typeof item !== "object" || !("id" in item) || !("label" in item)) continue;
     if (typeof item.id !== "string" || typeof item.label !== "string") continue;
-    if (item.id.length === 0 || item.id.length > 120 || item.label.length === 0 || item.label.length > 140) continue;
+    if (item.id.length === 0 || item.id.length > 300 || item.label.length === 0 || item.label.length > 140) continue;
     suggestions.push({ id: item.id, label: item.label });
   }
   return suggestions;

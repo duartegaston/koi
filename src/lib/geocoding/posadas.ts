@@ -16,14 +16,18 @@ export function isInsidePosadas(latitude: number, longitude: number): boolean {
   );
 }
 
-export function nominatimViewbox(): string {
+export function posadasRectangle() {
   const area = posadasSearchArea;
-  return `${area.west},${area.north},${area.east},${area.south}`;
+  return {
+    low: { latitude: area.south, longitude: area.west },
+    high: { latitude: area.north, longitude: area.east },
+  };
 }
 
-export function photonBbox(): string {
+/** `south,west|north,east` para el parámetro `bounds` de Geocoding. */
+export function geocodeBounds(): string {
   const area = posadasSearchArea;
-  return `${area.west},${area.south},${area.east},${area.north}`;
+  return `${area.south},${area.west}|${area.north},${area.east}`;
 }
 
 export function placeNameIncludes(value: string, expected: string): boolean {

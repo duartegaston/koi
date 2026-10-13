@@ -7,7 +7,16 @@ import { setCartQuantity, type CartActionState } from "@/actions/cart";
 import { ProductImage } from "@/components/product/product-image";
 import { buttonClass } from "@/components/ui/button";
 import type { CartLineSnapshot, CartSnapshot } from "@/lib/cart-types";
-import { rememberDisplayed, useLiveCart } from "@/components/layout/cart-store";
+import {
+  beginCartWrite,
+  endCartWrite,
+  publishCart,
+  readCart,
+  rememberDisplayed,
+  rollbackCart,
+  useLiveCart,
+  withLineQuantity,
+} from "@/components/layout/cart-store";
 import { addAmounts, formatArs, multiplyAmount } from "@/lib/money";
 import { availabilityNote } from "@/lib/order-limits";
 import { cn } from "@/lib/utils";
@@ -105,7 +114,7 @@ export function CartDrawer({ cart: serverCart }: { cart: CartSnapshot }) {
         aria-labelledby="cart-title"
         onClose={() => setOpen(false)}
         onClick={(event) => {
-          if (!clickInside(event)) setOpen(false);
+          if (event.target === event.currentTarget) setOpen(false);
         }}
       >
         <div className="flex h-full flex-col">
@@ -119,8 +128,8 @@ export function CartDrawer({ cart: serverCart }: { cart: CartSnapshot }) {
           </div>
 
           <ul hidden={visibleLines.length === 0} className="flex-1 divide-y divide-line overflow-y-auto">
-            {cart.lines.map((line) => (
-              <li key={line.productId} hidden={(quantities[line.productId] ?? line.quantity) === 0}>
+            {visibleLines.map((line) => (
+              <li key={line.productId}>
                 <CartLine line={line} onQuantity={onQuantity} />
               </li>
             ))}
@@ -179,6 +188,10 @@ function CartLine({
   const acked = useRef(line.quantity);
   const flight = useRef<Promise<void> | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const baseline = useRef<ReturnType<typeof readCart> | null>(null);
+  const writtenAt = useRef(0);
+  const locked = useRef(false);
+  const seenServerQuantity = useRef(line.quantity);
   const problem =
     line.problem === "unavailable"
       ? "Ya no está disponible."
@@ -195,6 +208,8 @@ function CartLine({
   }, []);
 
   useEffect(() => {
+    if (line.quantity === seenServerQuantity.current) return;
+    seenServerQuantity.current = line.quantity;
     if (flight.current || timer.current || desired.current !== acked.current) return;
     setQuantity(line.quantity);
     desired.current = line.quantity;
@@ -203,6 +218,20 @@ function CartLine({
     onQuantity(line.productId, line.quantity);
   }, [line.productId, line.quantity, onQuantity]);
 
+  function lockWrite() {
+    if (locked.current) return;
+    baseline.current = readCart();
+    beginCartWrite();
+    locked.current = true;
+  }
+
+  function unlockWrite() {
+    if (!locked.current) return;
+    locked.current = false;
+    baseline.current = null;
+    endCartWrite();
+  }
+
   function schedule(next: number, immediate = false) {
     const clamped = line.limit == null ? Math.max(0, next) : Math.min(Math.max(0, next), line.limit);
     setQuantity(clamped);
@@ -210,12 +239,14 @@ function CartLine({
     setError(null);
     if (clamped === 0) setRemoved(true);
     onQuantity(line.productId, clamped);
+    lockWrite();
+    writtenAt.current = publishCart(withLineQuantity(readCart(), line.productId, clamped));
     if (timer.current) clearTimeout(timer.current);
     const run = () => {
       timer.current = null;
       void sync();
     };
-    if (immediate) run();
+    if (immediate || clamped === 0) run();
     else timer.current = setTimeout(run, 180);
   }
 
@@ -227,21 +258,28 @@ function CartLine({
     }
 
     const job = (async () => {
-      while (desired.current !== acked.current) {
-        const value = desired.current;
-        const data = new FormData();
-        data.set("productId", line.productId);
-        data.set("quantity", String(value));
-        const result = await setCartQuantity(idleCartState, data);
-        if (result.status === "error") {
-          setError(result.message);
-          setRemoved(false);
-          setQuantity(acked.current);
-          desired.current = acked.current;
-          onQuantity(line.productId, acked.current);
-          return;
+      try {
+        while (desired.current !== acked.current) {
+          const value = desired.current;
+          const data = new FormData();
+          data.set("productId", line.productId);
+          data.set("quantity", String(value));
+          const result = await setCartQuantity(idleCartState, data);
+          if (result.status === "error") {
+            if (baseline.current) rollbackCart(writtenAt.current, baseline.current);
+            setError(result.message);
+            setRemoved(false);
+            setQuantity(acked.current);
+            desired.current = acked.current;
+            onQuantity(line.productId, acked.current);
+            return;
+          }
+          acked.current = value;
+          seenServerQuantity.current = value;
         }
-        acked.current = value;
+      } catch {
+        if (baseline.current) rollbackCart(writtenAt.current, baseline.current);
+        desired.current = acked.current;
       }
     })();
 
@@ -250,6 +288,7 @@ function CartLine({
       await job;
     } finally {
       flight.current = null;
+      if (desired.current === acked.current) unlockWrite();
     }
   }
 
@@ -279,7 +318,7 @@ function CartLine({
             {error}
           </p>
         ) : null}
-        <div className="mt-auto flex items-center gap-2 pt-3">
+        <div className="mt-auto flex flex-wrap items-center gap-2 pt-3">
           <button
             type="button"
             aria-label={`Quitar uno de ${line.name}`}
@@ -311,16 +350,6 @@ function CartLine({
         </div>
       </div>
     </div>
-  );
-}
-
-function clickInside(event: React.MouseEvent<HTMLDialogElement>) {
-  const rect = event.currentTarget.getBoundingClientRect();
-  return (
-    event.clientX >= rect.left &&
-    event.clientX <= rect.right &&
-    event.clientY >= rect.top &&
-    event.clientY <= rect.bottom
   );
 }
 

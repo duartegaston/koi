@@ -1,20 +1,15 @@
 import "server-only";
 
 import { houseNumber } from "@/lib/geocoding/address-query";
-import { isInsidePosadas, nominatimViewbox, placeNameIncludes } from "@/lib/geocoding/posadas";
+import { placesAutocomplete } from "@/lib/geocoding/google";
+import { placeNameIncludes } from "@/lib/geocoding/posadas";
 
 export type AddressSuggestion = {
   id: string;
   label: string;
 };
 
-type CachedSuggestions = {
-  at: number;
-  suggestions: AddressSuggestion[];
-};
-
-const cache = new Map<string, CachedSuggestions>();
-const cacheTtlMs = 10 * 60 * 1000;
+const addressTypes = new Set(["street_address", "route", "premise", "subpremise"]);
 
 export async function suggestAddresses(
   query: string,
@@ -24,122 +19,58 @@ export async function suggestAddresses(
   const letters = text.replace(/[^\p{L}]/gu, "");
   if (letters.length < 3 || text.length > 80) return [];
 
-  const key = text.toLocaleLowerCase("es-AR");
-  const cached = cache.get(key);
-  if (cached && Date.now() - cached.at < cacheTtlMs) return cached.suggestions;
-
-  const url = new URL("https://nominatim.openstreetmap.org/search");
-  url.searchParams.set("format", "jsonv2");
-  url.searchParams.set("addressdetails", "1");
-  url.searchParams.set("limit", "8");
-  url.searchParams.set("countrycodes", "ar");
-  url.searchParams.set("dedupe", "1");
-  url.searchParams.set("viewbox", nominatimViewbox());
-  url.searchParams.set("bounded", "1");
-  url.searchParams.set("q", /posadas/i.test(text) ? text : `${text}, Posadas, Misiones`);
-
-  let response: Response;
-  try {
-    response = await fetch(url, {
-      headers: {
-        Accept: "application/json",
-        "Accept-Language": "es",
-        "User-Agent": "koi/1.0 (checkout de envios en Posadas)",
-      },
-      signal: signal ? AbortSignal.any([AbortSignal.timeout(8_000), signal]) : AbortSignal.timeout(8_000),
-    });
-  } catch (error) {
-    if (isAbort(error)) return [];
-    return "unavailable";
-  }
-
-  if (!response.ok) return "unavailable";
-
-  let payload: unknown;
-  try {
-    payload = await response.json();
-  } catch {
-    return "unavailable";
-  }
-
-  const suggestions = readSuggestions(payload, houseNumber(text));
-  remember(key, suggestions);
-  return suggestions;
+  const payload = await placesAutocomplete(text, signal);
+  if (payload === "unavailable") return "unavailable";
+  return readSuggestions(payload, houseNumber(text));
 }
 
 function readSuggestions(payload: unknown, typedNumber: string | null): AddressSuggestion[] {
-  if (!Array.isArray(payload)) return [];
-
-  const houses: AddressSuggestion[] = [];
-  const streets: AddressSuggestion[] = [];
-  for (const item of payload) {
-    const draft = readDraft(item);
-    if (!draft) continue;
-    if (draft.kind === "house") houses.push(draft.suggestion);
-    else streets.push(withTypedNumber(draft.suggestion, typedNumber));
+  if (!payload || typeof payload !== "object" || !("suggestions" in payload) || !Array.isArray(payload.suggestions)) {
+    return [];
   }
 
-  const matchingHouses = typedNumber
-    ? houses.filter((suggestion) => suggestion.label.includes(` ${typedNumber}`))
-    : houses;
-  return dedupe(matchingHouses.length > 0 ? matchingHouses : streets);
+  const suggestions: AddressSuggestion[] = [];
+  for (const item of payload.suggestions) {
+    const suggestion = readSuggestion(item, typedNumber);
+    if (suggestion) suggestions.push(suggestion);
+  }
+  return dedupe(suggestions);
 }
 
-type Draft = {
-  kind: "house" | "street";
-  suggestion: AddressSuggestion;
-};
+function readSuggestion(value: unknown, typedNumber: string | null): AddressSuggestion | null {
+  if (!value || typeof value !== "object" || !("placePrediction" in value)) return null;
+  const prediction = value.placePrediction;
+  if (!prediction || typeof prediction !== "object") return null;
 
-function readDraft(value: unknown): Draft | null {
-  if (!value || typeof value !== "object") return null;
-  const hit = value as Record<string, unknown>;
-  const address = hit.address;
-  if (!address || typeof address !== "object") return null;
-  const details = address as Record<string, unknown>;
-
-  const latitude = typeof hit.lat === "string" ? Number(hit.lat) : Number.NaN;
-  const longitude = typeof hit.lon === "string" ? Number(hit.lon) : Number.NaN;
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || !isInsidePosadas(latitude, longitude)) return null;
-
-  const city = firstString(details, ["city", "town", "village", "municipality", "city_district"]);
-  const province = firstString(details, ["state"]);
-  const country = firstString(details, ["country_code"]);
-  if (country !== "ar" || !city || !province) return null;
-  if (!placeNameIncludes(city, "Posadas") || placeNameIncludes(city, "Garupa") || !placeNameIncludes(province, "Misiones")) {
+  const placeId = "placeId" in prediction && typeof prediction.placeId === "string" ? prediction.placeId : null;
+  const mainText = readText(prediction, "mainText");
+  const secondaryText = readText(prediction, "secondaryText");
+  const types = "types" in prediction && Array.isArray(prediction.types) ? prediction.types : [];
+  if (!placeId || placeId.length > 300 || !mainText) return null;
+  if (!types.some((type) => typeof type === "string" && addressTypes.has(type))) return null;
+  if (!secondaryText || !placeNameIncludes(secondaryText, "Posadas") || placeNameIncludes(secondaryText, "Garupa")) {
     return null;
   }
 
-  const id = typeof hit.place_id === "number" && Number.isSafeInteger(hit.place_id) ? String(hit.place_id) : null;
-  const road = firstString(details, ["road"]);
-  if (!id || !road) return null;
-
-  const mappedNumber = firstString(details, ["house_number"]);
-  const isHouse =
-    Boolean(mappedNumber) &&
-    ((hit.category === "place" && hit.type === "house") || hit.category === "building");
-  if (isHouse && mappedNumber) {
-    return { kind: "house", suggestion: { id, label: houseLabel(road, mappedNumber, firstString(details, ["neighbourhood"])) } };
-  }
-
-  if (hit.category === "highway" && hit.type !== "bus_stop") {
-    return road.length <= 140 ? { kind: "street", suggestion: { id, label: road } } : null;
-  }
-  return null;
+  const isRoute = types.includes("route") && !types.includes("street_address") && !types.includes("premise");
+  const label = isRoute ? withTypedNumber(mainText, typedNumber) : mainText;
+  return label.length <= 140 ? { id: placeId, label } : null;
 }
 
-function houseLabel(road: string, number: string, neighbourhood: string | null): string {
-  const line = `${road} ${number}`;
-  if (!neighbourhood || line.toLocaleLowerCase("es-AR").includes(neighbourhood.toLocaleLowerCase("es-AR"))) {
-    return line.slice(0, 140);
-  }
-  const withNeighbourhood = `${line}, ${neighbourhood}`;
-  return withNeighbourhood.length <= 140 ? withNeighbourhood : line.slice(0, 140);
+function readText(prediction: object, field: "mainText" | "secondaryText"): string | null {
+  if (!("structuredFormat" in prediction)) return null;
+  const format = prediction.structuredFormat;
+  if (!format || typeof format !== "object") return null;
+  const block = (format as Record<string, unknown>)[field];
+  if (!block || typeof block !== "object" || !("text" in block) || typeof block.text !== "string") return null;
+  const text = block.text.trim();
+  return text.length > 0 && text.length <= 180 ? text : null;
 }
 
-function withTypedNumber(suggestion: AddressSuggestion, typedNumber: string | null): AddressSuggestion {
-  if (!typedNumber) return suggestion;
-  const label = `${suggestion.label} ${typedNumber}`;
-  return label.length <= 140 ? { ...suggestion, label } : suggestion;
+function withTypedNumber(street: string, typedNumber: string | null): string {
+  if (!typedNumber || street.endsWith(` ${typedNumber}`)) return street;
+  const label = `${street} ${typedNumber}`;
+  return label.length <= 140 ? label : street;
 }
 
 function dedupe(suggestions: AddressSuggestion[]): AddressSuggestion[] {
@@ -150,31 +81,7 @@ function dedupe(suggestions: AddressSuggestion[]): AddressSuggestion[] {
     if (seen.has(key)) continue;
     seen.add(key);
     unique.push(suggestion);
-    if (unique.length >= 6) break;
+    if (unique.length >= 5) break;
   }
   return unique;
-}
-
-function firstString(record: Record<string, unknown>, keys: string[]): string | null {
-  for (const key of keys) {
-    const value = record[key];
-    if (typeof value !== "string") continue;
-    const text = value.trim();
-    if (text.length > 0 && text.length <= 120) return text;
-  }
-  return null;
-}
-
-function isAbort(error: unknown): boolean {
-  return error instanceof DOMException && error.name === "AbortError";
-}
-
-function remember(key: string, suggestions: AddressSuggestion[]) {
-  cache.delete(key);
-  while (cache.size >= 50) {
-    const oldest = cache.keys().next().value;
-    if (!oldest) break;
-    cache.delete(oldest);
-  }
-  cache.set(key, { at: Date.now(), suggestions });
 }

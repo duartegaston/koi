@@ -1,7 +1,7 @@
 export const siteName = "Koi";
 
-/** URL pública mientras koichocolates.com.ar sigue en aprobación. */
-export const publishedSiteUrl = "https://koi.koichocolates.workers.dev";
+/** URL pública canónica. En el Worker gana `APP_URL`. */
+export const publishedSiteUrl = "https://koichocolates.com.ar";
 
 export const instagramUrl = "https://www.instagram.com/koi.chocolates/";
 

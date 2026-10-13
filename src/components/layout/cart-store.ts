@@ -80,6 +80,23 @@ export function useLiveCart(serverCart: CartSnapshot) {
   return cart;
 }
 
+export function withLineQuantity(cart: CartSnapshot, productId: string, quantity: number): CartSnapshot {
+  const nextQuantity = Math.max(0, quantity);
+  const lines =
+    nextQuantity === 0
+      ? cart.lines.filter((line) => line.productId !== productId)
+      : cart.lines.map((line) =>
+          line.productId === productId
+            ? {
+                ...line,
+                quantity: nextQuantity,
+                lineTotal: multiplyAmount(line.unitPrice, nextQuantity),
+              }
+            : line,
+        );
+  return summarize(lines);
+}
+
 export function withAddedProduct(
   cart: CartSnapshot,
   product: {
