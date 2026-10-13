@@ -16,7 +16,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "db:seed": "node scripts/seed.mjs"
+    "db:seed": "node scripts/seed.mjs",
+    "db:import-catalog": "node scripts/import-catalog.mjs"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^1.20.10",

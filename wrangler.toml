@@ -13,13 +13,16 @@ binding = "ASSETS"
 binding = "WORKER_SELF_REFERENCE"
 service = "koi"
 
+# workers.dev mientras koichocolates.com.ar sigue en aprobación.
+workers_dev = true
+
 # Variables no sensibles. Los secretos (DATABASE_URL, RESEND_API_KEY, EMAIL_FROM,
-# WHATSAPP_NUMBER, MERCADOPAGO_ACCESS_TOKEN, MERCADOPAGO_WEBHOOK_SECRET,
-# ADMIN_USERNAME, ADMIN_PASSWORD_HASH, ADMIN_SESSION_SECRET) se cargan
-# con `wrangler secret put <NAME>` o desde el dashboard de Cloudflare.
-# Dirección, alias y coordenadas del local también van como secretos o [vars].
+# WHATSAPP_NUMBER, ADMIN_USERNAME, ADMIN_PASSWORD_HASH, ADMIN_SESSION_SECRET,
+# STORE_PICKUP_ADDRESS, STORE_TRANSFER_ALIAS, STORE_ORIGIN_LATITUDE,
+# STORE_ORIGIN_LONGITUDE) se cargan con `wrangler secret bulk`.
+# Mercado Pago queda afuera de este deploy: el checkout no lo ofrece.
 [vars]
-APP_URL = "http://localhost:3000"
+APP_URL = "https://koi.koichocolates.workers.dev"
 
 [[r2_buckets]]
 binding = "PRODUCT_IMAGES"

@@ -34,10 +34,11 @@ function isMercadoPagoHost(hostname: string): boolean {
 }
 
 const storedImagePath = /^\/media\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const catalogImagePath = /^\/productos\/[a-z0-9]+(?:-[a-z0-9]+)*\.(?:png|jpe?g|webp)$/;
 
-/** Acepta http(s) o una foto propia servida en /media/{uuid}. */
+/** Acepta http(s), una foto del bucket en /media/{uuid}, o una del catálogo en /productos/. */
 export function safeImageUrl(value: string): string | null {
-  if (storedImagePath.test(value)) return value;
+  if (storedImagePath.test(value) || catalogImagePath.test(value)) return value;
   try {
     const url = new URL(value);
     if (url.protocol !== "https:" && url.protocol !== "http:") return null;

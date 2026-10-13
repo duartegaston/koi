@@ -59,8 +59,9 @@ function createClient(max: number, maxPipeline: number) {
     fetch_types: false,
     ssl: sslOption(connectionString),
     connect_timeout: 10,
+    // El runtime de postgres 3.4 acepta max_pipeline; los tipos publicados no.
     max_pipeline: maxPipeline,
-  });
+  } as postgres.Options<Record<string, never>>);
 }
 
 export { schema };
