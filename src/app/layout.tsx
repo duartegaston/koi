@@ -21,6 +21,10 @@ export const metadata: Metadata = {
   description: "Pedidos con envío dentro de Posadas o retiro en el local.",
 };
 
+// Los secretos viven en el Worker, no en el build de Git. Sin esto Next
+// prerenderiza páginas como /contacto y falla porque no hay .env.
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="es" className={`${label.variable} ${publication.variable}`}>
