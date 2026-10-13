@@ -97,6 +97,10 @@
   border-left: 1px solid var(--koi-line);
 }
 
+.cart-dialog:focus {
+  outline: none;
+}
+
 .menu-dialog {
   position: fixed;
   inset: 0 auto 0 0;

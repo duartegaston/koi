@@ -86,7 +86,10 @@ export function CartDrawer({ cart: serverCart }: { cart: CartSnapshot }) {
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
+    if (open && !dialog.open) {
+      dialog.showModal();
+      dialog.focus({ preventScroll: true });
+    }
     if (!open && dialog.open) dialog.close();
   }, [open]);
 
@@ -110,6 +113,7 @@ export function CartDrawer({ cart: serverCart }: { cart: CartSnapshot }) {
       </button>
       <dialog
         ref={dialogRef}
+        tabIndex={-1}
         className="cart-dialog"
         aria-labelledby="cart-title"
         onClose={() => setOpen(false)}
@@ -122,7 +126,12 @@ export function CartDrawer({ cart: serverCart }: { cart: CartSnapshot }) {
             <h2 id="cart-title" className="font-label text-sm font-medium tracking-wide">
               Carrito
             </h2>
-            <button type="button" className="inline-flex h-11 w-11 items-center justify-center" aria-label="Cerrar carrito" onClick={() => setOpen(false)}>
+            <button
+              type="button"
+              className="inline-flex h-11 w-11 items-center justify-center outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-primary"
+              aria-label="Cerrar carrito"
+              onClick={() => setOpen(false)}
+            >
               <CloseIcon />
             </button>
           </div>
