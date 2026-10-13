@@ -160,6 +160,7 @@ export function CartDrawer({ cart: serverCart }: { cart: CartSnapshot }) {
               ) : null}
               <Link
                 href="/checkout"
+                prefetch={false}
                 aria-disabled={blocked}
                 className={cn(buttonClass.primary, "w-full", blocked && "pointer-events-none opacity-50")}
                 onClick={() => setOpen(false)}

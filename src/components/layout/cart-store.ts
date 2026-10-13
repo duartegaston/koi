@@ -50,11 +50,11 @@ export function endCartWrite() {
   writes -= 1;
 }
 
-export function publishCart(cart: CartSnapshot) {
+export function publishCart(cart: CartSnapshot, origin: "customer" | "server" = "customer") {
   current = cart;
   displayed = cart;
   revision += 1;
-  emptiedByCustomer = cart.itemCount === 0;
+  emptiedByCustomer = origin === "customer" && cart.itemCount === 0;
   emit();
   return revision;
 }
@@ -71,15 +71,27 @@ export function cartEmptiedByCustomer() {
   return emptiedByCustomer;
 }
 
+function shouldAcceptServerCart(serverCart: CartSnapshot) {
+  if (!current || writes > 0) return false;
+  // El prefetch de /checkout puede llegar vacío, antes de la cookie. No borra lo que el cliente ya agregó.
+  if (serverCart.itemCount === 0 && current.itemCount > 0) return false;
+  // El cliente acaba de quitar todo: un snapshot viejo no vuelve a llenar el carrito.
+  if (emptiedByCustomer && serverCart.itemCount > 0) return false;
+  return true;
+}
+
 export function useLiveCart(serverCart: CartSnapshot) {
   const key = cartKey(serverCart);
   if (typeof window !== "undefined") {
-    if (current === null) current = serverCart;
-    if (seenServer !== "" && seenServer !== key && writes === 0) {
+    if (current === null) {
       current = serverCart;
-      emptiedByCustomer = false;
+      seenServer = key;
+    } else if (seenServer !== key && shouldAcceptServerCart(serverCart)) {
+      current = serverCart;
+      displayed = serverCart;
+      if (serverCart.itemCount > 0) emptiedByCustomer = false;
+      seenServer = key;
     }
-    seenServer = key;
   }
 
   const cart = useSyncExternalStore(

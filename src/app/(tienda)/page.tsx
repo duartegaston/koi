@@ -101,7 +101,7 @@ export default async function HomePage() {
       <Marquee items={["Hecho para retirar", "O para que te lo lleven"]} tone="ink" />
 
       <section id="tienda" className="scroll-mt-20 py-16 md:py-24">
-        <h2 className="px-6 text-center text-4xl sm:text-5xl">Productos destacados</h2>
+        <h2 className="px-6 text-center text-4xl sm:text-5xl">PRODUCTOS DESTACADOS</h2>
         <div className="mt-10">
           {products.length === 0 ? (
             <div className="px-6">
@@ -134,19 +134,22 @@ export default async function HomePage() {
         </ol>
       </section>
 
-      <section className="bg-ink px-6 py-20 text-center md:py-28">
-        <h2 className="text-4xl text-primary sm:text-6xl">Escribinos</h2>
-        <p className="mx-auto mt-6 max-w-sm text-xl leading-relaxed text-primary">
+      <section className="relative flex flex-col items-center overflow-hidden bg-ink px-6 py-20 text-center md:py-28">
+        <div aria-hidden="true" className="pointer-events-none absolute top-2 -left-4 z-0 w-20 sm:left-0 sm:w-40 md:w-52">
+          <Image src="/brand/pez-koy.png" alt="" width={520} height={690} className="h-auto w-full" />
+        </div>
+        <div aria-hidden="true" className="pointer-events-none absolute right-0 bottom-2 z-0 w-20 sm:w-40 md:w-52">
+          <Image src="/brand/pez-koy.png" alt="" width={520} height={690} className="h-auto w-full" />
+        </div>
+        <h2 className="relative z-10 text-4xl text-primary sm:text-6xl">ESCRIBINOS</h2>
+        <p className="relative z-10 mt-6 max-w-sm text-xl leading-relaxed text-primary">
           Una consulta, un pedido, un retiro.
           <br />
           Te respondemos por WhatsApp.
         </p>
-        <a href={contactHref} target="_blank" rel="noopener noreferrer" className={`${buttonClass.inverse} mt-10`}>
+        <a href={contactHref} target="_blank" rel="noopener noreferrer" className={`${buttonClass.inverse} relative z-10 mt-10`}>
           Contacto
         </a>
-        <Link href="/contacto" className="mt-6 inline-flex min-h-11 items-center font-label text-sm text-sand underline-offset-4 hover:underline">
-          Dejar un mensaje
-        </Link>
       </section>
     </>
   );

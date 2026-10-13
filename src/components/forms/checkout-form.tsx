@@ -6,11 +6,11 @@ import { useActionState, useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { submitCheckout, type CheckoutState, type DeliveryQuoteView } from "@/actions/checkout";
 import { AddressSuggest } from "@/components/forms/address-suggest";
-import { cartEmptiedByCustomer, useLiveCart } from "@/components/layout/cart-store";
+import { cartEmptiedByCustomer, publishCart, useLiveCart } from "@/components/layout/cart-store";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { InputField } from "@/components/ui/field";
-import type { CartSnapshot } from "@/lib/cart-types";
+import { emptyCart, type CartSnapshot } from "@/lib/cart-types";
 import { availabilityNote } from "@/lib/order-limits";
 import { mercadoPagoOffered } from "@/lib/payment-options";
 import { mapLink } from "@/lib/geo";
@@ -42,6 +42,11 @@ export function CheckoutForm({
   const [state, action] = useActionState(submitCheckout, idleCheckoutState);
   const cartIsEmpty = liveCart.itemCount === 0;
   const leaving = state.status !== "success" && cartIsEmpty && cartEmptiedByCustomer();
+
+  useEffect(() => {
+    if (state.status !== "success") return;
+    publishCart(emptyCart, "server");
+  }, [state.status]);
 
   useEffect(() => {
     if (!leaving) return;
