@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { submitCheckout, type CheckoutState, type DeliveryQuoteView } from "@/actions/checkout";
 import { AddressSuggest } from "@/components/forms/address-suggest";
+import { cartEmptiedByCustomer, useLiveCart } from "@/components/layout/cart-store";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { InputField } from "@/components/ui/field";
@@ -35,7 +37,16 @@ export function CheckoutForm({
   store: StoreView | null;
   storeError: string | null;
 }) {
+  const liveCart = useLiveCart(cart);
+  const router = useRouter();
   const [state, action] = useActionState(submitCheckout, idleCheckoutState);
+  const cartIsEmpty = liveCart.itemCount === 0;
+  const leaving = state.status !== "success" && cartIsEmpty && cartEmptiedByCustomer();
+
+  useEffect(() => {
+    if (!leaving) return;
+    router.replace("/");
+  }, [leaving, router]);
 
   if (state.status === "success") {
     return <OrderSuccess order={state.order} />;
@@ -49,7 +60,7 @@ export function CheckoutForm({
     );
   }
 
-  if (cart.lines.length === 0) {
+  if (cartIsEmpty) {
     return (
       <div className="mx-auto max-w-lg px-6 py-16">
         <EmptyState title="El carrito está vacío" body="Agregá un producto para armar el pedido." />
@@ -62,7 +73,7 @@ export function CheckoutForm({
     );
   }
 
-  return <CheckoutFields cart={cart} store={store} state={state} action={action} />;
+  return <CheckoutFields cart={liveCart} store={store} state={state} action={action} />;
 }
 
 function CheckoutFields({

@@ -9,6 +9,7 @@ let displayed: CartSnapshot | null = null;
 let revision = 0;
 let writes = 0;
 let seenServer = "";
+let emptiedByCustomer = false;
 const listeners = new Set<() => void>();
 
 function emit() {
@@ -53,6 +54,7 @@ export function publishCart(cart: CartSnapshot) {
   current = cart;
   displayed = cart;
   revision += 1;
+  emptiedByCustomer = cart.itemCount === 0;
   emit();
   return revision;
 }
@@ -61,14 +63,22 @@ export function rollbackCart(writtenAt: number, cart: CartSnapshot) {
   if (writtenAt !== revision) return;
   current = cart;
   displayed = cart;
+  emptiedByCustomer = false;
   emit();
+}
+
+export function cartEmptiedByCustomer() {
+  return emptiedByCustomer;
 }
 
 export function useLiveCart(serverCart: CartSnapshot) {
   const key = cartKey(serverCart);
   if (typeof window !== "undefined") {
     if (current === null) current = serverCart;
-    if (seenServer !== "" && seenServer !== key && writes === 0) current = serverCart;
+    if (seenServer !== "" && seenServer !== key && writes === 0) {
+      current = serverCart;
+      emptiedByCustomer = false;
+    }
     seenServer = key;
   }
 
