@@ -14,20 +14,28 @@ export function Footer() {
           </p>
         </div>
         <nav className="flex flex-col gap-3 text-sm">
-          <p className="font-label text-sm tracking-wide text-muted">Tienda</p>
-          <Link href="/#tienda" className="w-fit underline-offset-4 hover:underline">
-            Ver productos
-          </Link>
-          <Link href="/contacto" className="w-fit underline-offset-4 hover:underline">
-            Contacto
-          </Link>
+          <p className="font-label text-base tracking-wide text-muted">Tienda</p>
+          <ul className="list-disc space-y-3 pl-4 marker:text-foreground">
+            <li>
+              <Link href="/#tienda" className="underline-offset-4 hover:underline">
+                Ver productos
+              </Link>
+            </li>
+            <li>
+              <Link href="/contacto" className="underline-offset-4 hover:underline">
+                Contacto
+              </Link>
+            </li>
+          </ul>
         </nav>
         <div className="flex flex-col items-start gap-4 text-sm leading-relaxed text-muted">
           <p>Posadas, Misiones</p>
           <div>
             <p className="font-label tracking-wide">Horarios</p>
-            <p>Lu a vi de 10:30 a 16 y 20 a 23.</p>
-            <p>Sa de 11:30 a 15 y 18:30 a 20:30.</p>
+            <ul className="mt-1 list-disc space-y-1 pl-4 marker:text-muted">
+              <li>Lu a vi de 10:30 a 16 y 20 a 23.</li>
+              <li>Sa de 11:30 a 15 y 18:30 a 20:30.</li>
+            </ul>
           </div>
           <a
             href={instagramHref}

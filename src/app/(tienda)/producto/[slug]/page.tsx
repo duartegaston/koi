@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { AddToCart } from "@/components/product/add-to-cart";
 import { ProductGallery } from "@/components/product/gallery";
 import { formatArs } from "@/lib/money";
+import { formatProductName } from "@/lib/utils";
 import { getProduct } from "@/lib/catalog";
 
 type ProductPageProps = {
@@ -32,7 +33,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
         <Link href={`/categoria/${product.categorySlug}`} className="font-label text-sm tracking-wide text-muted underline-offset-4 hover:underline">
           {product.categoryName}
         </Link>
-        <h1 className="mt-3 text-4xl md:text-6xl">{product.name}</h1>
+        <h1 className="mt-3 text-4xl md:text-6xl">{formatProductName(product.name)}</h1>
         <p className="mt-4 font-label text-xl tabular-nums">{formatArs(product.price)}</p>
         <p className="mt-6 max-w-prose text-base leading-relaxed whitespace-pre-wrap text-muted">{product.description}</p>
         <p className="mt-6 text-sm">

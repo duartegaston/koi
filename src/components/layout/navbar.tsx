@@ -9,7 +9,7 @@ import { storeContactWhatsAppUrl } from "@/lib/whatsapp/link";
 
 export function Navbar() {
   return (
-    <header className="sticky top-0 z-40 border-b border-paper/20 bg-ink text-paper">
+    <header className="sticky top-0 z-40 border-b-2 border-primary bg-ink text-paper">
       <Suspense fallback={<NavbarFallback />}>
         <NavbarContent />
       </Suspense>
@@ -24,7 +24,7 @@ async function NavbarContent() {
 
   return (
     <div className="flex min-h-20 items-center gap-3 px-4 py-2 md:gap-4 md:px-8">
-      <Wordmark onInk withTagline taglineBelow priority />
+      <Wordmark onInk withTagline priority />
       <div className="hidden flex-1 justify-center md:flex">
         <CategoryMenu categories={links} />
       </div>

@@ -31,7 +31,7 @@ export function Wordmark({
       aria-label={withTagline ? "Koi, unidos x el chocolate" : "Koi"}
       className={cn(
         "inline-flex min-h-11",
-        taglineBelow ? "flex-col items-center gap-1" : "items-center gap-3",
+        taglineBelow ? "flex-col items-center gap-1" : "items-end gap-2.5",
         className,
       )}
     >
@@ -47,7 +47,8 @@ export function Wordmark({
       {withTagline ? (
         <span
           className={cn(
-            "text-center font-label",
+            "font-label leading-none",
+            taglineBelow ? "text-center" : "pb-1.5 text-left",
             taglineTone === "primary" ? "text-xl font-bold" : "text-sm",
             taglineFromLg && "hidden lg:block",
             taglineColor,

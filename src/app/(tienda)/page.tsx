@@ -105,18 +105,18 @@ export default async function HomePage() {
 
       <section className="bg-primary px-6 py-16 text-primary-foreground md:py-24">
         <h2 className="text-center text-3xl sm:text-5xl">COMO HAGO MI PEDIDO</h2>
-        <ol className="mx-auto mt-12 grid max-w-6xl gap-4 sm:grid-cols-2 lg:grid-cols-6">
+        <ol className="mx-auto mt-10 grid max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-6">
           {steps.map((step, index) => (
             <li
               key={step.title}
-              className={`step-card rounded-3xl bg-paper p-6 text-foreground shadow-[0_18px_40px_-28px_rgba(34,54,68,0.85)] transition duration-300 motion-safe:hover:-translate-y-1.5 motion-safe:hover:shadow-[0_28px_50px_-24px_rgba(34,54,68,0.7)] ${
+              className={`step-card rounded-2xl bg-paper p-4 text-foreground shadow-[0_18px_40px_-28px_rgba(34,54,68,0.85)] transition duration-300 motion-safe:hover:-translate-y-1 motion-safe:hover:shadow-[0_28px_50px_-24px_rgba(34,54,68,0.7)] ${
                 index === 3 ? "lg:col-span-2 lg:col-start-2" : index === 4 ? "lg:col-span-2 lg:col-start-4" : "lg:col-span-2"
               }`}
               style={{ animationDelay: `${index * 80}ms` }}
             >
-              <p className="font-display text-5xl text-primary">{index + 1}</p>
-              <h3 className="mt-4 font-display text-2xl">{step.title}</h3>
-              <p className="mt-3 text-base leading-relaxed">{step.body}</p>
+              <p className="font-display text-3xl text-primary">{index + 1}</p>
+              <h3 className="mt-2 font-display text-xl">{step.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed">{step.body}</p>
             </li>
           ))}
         </ol>

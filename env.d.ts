@@ -15,4 +15,5 @@ interface CloudflareEnv {
   ADMIN_PASSWORD_HASH: string;
   ADMIN_SESSION_SECRET: string;
   PRODUCT_IMAGES: R2Bucket;
+  HYPERDRIVE: Hyperdrive;
 }

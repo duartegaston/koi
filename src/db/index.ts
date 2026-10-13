@@ -1,6 +1,8 @@
 import "server-only";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
+import { cache } from "react";
 import { getServerEnv } from "@/lib/env";
 import * as schema from "./schema";
 
@@ -20,8 +22,7 @@ function sslOption(connectionString: string): "require" | false {
 
 /**
  * PostgreSQL estándar vía postgres.js. `prepare: false` permite poolers en
- * modo transaction (PgBouncer). En producción `max` queda en 1: cada isolate
- * de Workers no debe abrir un pool propio. En `next dev` un pool chico deja
+ * modo transaction (PgBouncer). En `next dev` un pool chico deja
  * que Navbar, la página y un `Promise.all` usen conexiones distintas.
  *
  * `max_pipeline` tiene que ser 0 en este pool. Con 1 el driver escribe la
@@ -36,22 +37,53 @@ function sslOption(connectionString: string): "require" | false {
  * de las páginas.
  */
 export function getDb(): Database {
-  if (!db) {
-    db = drizzle({ client: createClient(process.env.NODE_ENV === "development" ? 4 : 1, 0), schema });
+  if (process.env.NODE_ENV === "development") {
+    db ??= openDatabase(4, 0);
+    return db;
   }
-
-  return db;
+  // Hyperdrive no conserva el socket entre requests. Un cliente guardado en el
+  // módulo falla en la ficha y en el resumen apenas el isolate atiende otro pedido.
+  return requestDatabase(5, 0);
 }
 
 export function getTransactionDb(): Database {
-  if (!transactions) {
-    transactions = drizzle({ client: createClient(1, 1), schema });
+  if (process.env.NODE_ENV === "development") {
+    transactions ??= openDatabase(1, 1);
+    return transactions;
   }
-
-  return transactions;
+  return requestDatabase(1, 1);
 }
 
-function createClient(max: number, maxPipeline: number) {
+const requestDatabase = cache((max: number, maxPipeline: number) => openDatabase(max, maxPipeline));
+
+function openDatabase(max: number, maxPipeline: number): Database {
+  return drizzle({ client: createClient(max, maxPipeline, readHyperdriveUrl()), schema });
+}
+
+/**
+ * En el Worker la conexión sale por Hyperdrive. El socket directo al pooler
+ * de Supabase no llega a autenticarse y las consultas de la tienda fallan.
+ * En `next dev` se sigue usando DATABASE_URL.
+ */
+function readHyperdriveUrl(): string | undefined {
+  if (process.env.NODE_ENV === "development") return undefined;
+  try {
+    return getCloudflareContext().env.HYPERDRIVE?.connectionString;
+  } catch {
+    return undefined;
+  }
+}
+
+function createClient(max: number, maxPipeline: number, hyperdriveUrl: string | undefined) {
+  if (hyperdriveUrl) {
+    return postgres(hyperdriveUrl, {
+      max,
+      prepare: true,
+      fetch_types: false,
+      connect_timeout: 10,
+    });
+  }
+
   const connectionString = getServerEnv().DATABASE_URL;
   return postgres(connectionString, {
     max,

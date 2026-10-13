@@ -51,16 +51,35 @@ export function MobileMenu({ categories, contactHref }: { categories: CategoryLi
               <CloseIcon />
             </button>
           </div>
-          <nav className="flex flex-col px-2 py-4">
-            <Link href="/tienda" className="px-2 py-3 font-display text-3xl">
-              Todos
+          <nav className="flex flex-col px-3 py-3">
+            <p className="px-3 pt-2 pb-1 font-label text-xs tracking-[0.14em] text-muted uppercase">Productos</p>
+            <Link
+              href="/tienda"
+              aria-current={pathname === "/tienda" ? "page" : undefined}
+              className="rounded-lg px-3 py-2.5 font-label text-base tracking-wide hover:bg-surface aria-[current=page]:underline aria-[current=page]:decoration-primary aria-[current=page]:decoration-2 aria-[current=page]:underline-offset-4"
+            >
+              Todos los productos
             </Link>
-            {categories.map((category) => (
-              <Link key={category.slug} href={`/categoria/${category.slug}`} className="px-2 py-3 font-display text-3xl">
-                {category.name}
-              </Link>
-            ))}
-            <a href={contactHref} target="_blank" rel="noopener noreferrer" className="px-2 py-3 font-display text-3xl">
+            {categories.map((category) => {
+              const href = `/categoria/${category.slug}`;
+              const active = pathname === href;
+              return (
+                <Link
+                  key={category.slug}
+                  href={href}
+                  aria-current={active ? "page" : undefined}
+                  className="rounded-lg px-3 py-2.5 font-label text-base tracking-wide hover:bg-surface aria-[current=page]:underline aria-[current=page]:decoration-primary aria-[current=page]:decoration-2 aria-[current=page]:underline-offset-4"
+                >
+                  {category.name}
+                </Link>
+              );
+            })}
+            <a
+              href={contactHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 rounded-full bg-ink px-4 py-3 text-center font-label text-sm tracking-wide text-paper"
+            >
               Contacto
             </a>
           </nav>

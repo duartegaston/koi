@@ -24,6 +24,10 @@ workers_dev = true
 [vars]
 APP_URL = "https://koi.koichocolates.workers.dev"
 
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "145642e3be074eba9cf4f1f30bd02c70"
+
 [[r2_buckets]]
 binding = "PRODUCT_IMAGES"
 bucket_name = "koi-product-images"

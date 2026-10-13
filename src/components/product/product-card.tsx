@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ProductImage } from "@/components/product/product-image";
 import { formatArs } from "@/lib/money";
+import { formatProductName } from "@/lib/utils";
 
 type CardProduct = {
   id: string;
@@ -25,7 +26,9 @@ export function ProductCard({
       <div className="relative aspect-[3/4] overflow-hidden bg-surface">
         <ProductImage src={image?.url ?? null} alt="" priority={priority} />
       </div>
-      <h3 className="mt-4 text-center font-display text-xl leading-snug">{product.name}</h3>
+      <h3 className="mt-4 text-center font-display text-xl leading-snug">
+        {formatProductName(product.name)}
+      </h3>
       <p className="mt-1 text-center font-label text-base tabular-nums">{formatArs(product.price)}</p>
       <p className="mt-1 text-center text-sm">
         {product.stock > 0 ? "En stock" : "A pedido · 7 a 10 días hábiles"}
