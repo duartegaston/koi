@@ -23,7 +23,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
   const category = (await getCategories()).find((item) => item.slug === slug);
   if (!category) notFound();
 
-  const products = await getProducts(slug);
+  const products = (await getProducts(slug)).toSorted((a, b) => Number(a.stock <= 0) - Number(b.stock <= 0));
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-16 text-center md:py-20">

@@ -20,9 +20,12 @@ export default async function ShopPage() {
         {products.length === 0 ? (
           <EmptyState title="Todavía no hay productos" body="Cuando se cargue el catálogo, vas a verlos acá." />
         ) : (
-          groupByCategory(products).map((group, index) => (
-            <section key={group.slug} aria-labelledby={`categoria-${group.slug}`}>
-              <h2 id={`categoria-${group.slug}`} className="text-center text-3xl md:text-4xl">
+          groupInStockThenMadeToOrder(products).map((group, index) => (
+            <section
+              key={`${group.availability}-${group.slug}`}
+              aria-labelledby={`categoria-${group.availability}-${group.slug}`}
+            >
+              <h2 id={`categoria-${group.availability}-${group.slug}`} className="text-center text-3xl md:text-4xl">
                 {group.name}
               </h2>
               <div className="mt-8">
@@ -36,14 +39,27 @@ export default async function ShopPage() {
   );
 }
 
-function groupByCategory(products: CatalogProduct[]) {
-  const groups: { slug: string; name: string; products: CatalogProduct[] }[] = [];
+function groupInStockThenMadeToOrder(products: CatalogProduct[]) {
+  return [
+    ...groupByCategory(
+      products.filter((product) => product.stock > 0),
+      "stock",
+    ),
+    ...groupByCategory(
+      products.filter((product) => product.stock <= 0),
+      "pedido",
+    ),
+  ];
+}
+
+function groupByCategory(products: CatalogProduct[], availability: "stock" | "pedido") {
+  const groups: { availability: "stock" | "pedido"; slug: string; name: string; products: CatalogProduct[] }[] = [];
   for (const product of products) {
     const current = groups.at(-1);
     if (current?.slug === product.categorySlug) {
       current.products.push(product);
     } else {
-      groups.push({ slug: product.categorySlug, name: product.categoryName, products: [product] });
+      groups.push({ availability, slug: product.categorySlug, name: product.categoryName, products: [product] });
     }
   }
   return groups;

@@ -23,8 +23,8 @@ async function NavbarContent() {
   const contactHref = storeContactWhatsAppUrl();
 
   return (
-    <div className="flex h-20 items-center gap-3 px-4 md:gap-4 md:px-8">
-      <Wordmark onInk withTagline priority />
+    <div className="flex min-h-20 items-center gap-3 px-4 py-2 md:gap-4 md:px-8">
+      <Wordmark onInk withTagline taglineBelow priority />
       <div className="hidden flex-1 justify-center md:flex">
         <CategoryMenu categories={links} />
       </div>
@@ -52,7 +52,7 @@ function ContactLink({ href }: { href: string }) {
 
 function NavbarFallback() {
   return (
-    <div className="flex h-20 items-center px-4 md:px-8">
+    <div className="flex min-h-20 items-center px-4 py-2 md:px-8">
       <Wordmark onInk priority />
       <div className="ml-auto h-11 w-11 rounded-full bg-paper/20" />
     </div>

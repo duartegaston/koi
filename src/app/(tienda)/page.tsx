@@ -9,6 +9,10 @@ import { storeContactWhatsAppUrl } from "@/lib/whatsapp/link";
 
 const ticker = ["Chocolates Rapanui", "Envío en Posadas"];
 
+function inStockFirst<T extends { stock: number }>(products: T[]) {
+  return [...products].sort((a, b) => Number(a.stock <= 0) - Number(b.stock <= 0));
+}
+
 const steps = [
   {
     title: "Los productos",
@@ -34,12 +38,12 @@ const steps = [
 
 export default async function HomePage() {
   const featured = await getProducts(undefined, true);
-  const products = featured.length > 0 ? featured : (await getProducts()).slice(0, 8);
+  const products = inStockFirst(featured.length > 0 ? featured : (await getProducts()).slice(0, 8));
   const contactHref = storeContactWhatsAppUrl();
 
   return (
     <>
-      <section className="relative flex min-h-[calc(100dvh-5rem)] flex-col items-center justify-center bg-ink px-6 pt-16 pb-36 text-center text-paper">
+      <section className="relative flex min-h-[calc(100dvh-6.5rem)] flex-col items-center justify-center bg-ink px-6 pt-16 pb-36 text-center text-paper">
         <Image
           src="/brand/lockup.png"
           alt="koi. unidos x el chocolate"
@@ -50,7 +54,9 @@ export default async function HomePage() {
           className="h-auto w-full max-w-64 md:max-w-md"
           style={{ width: "100%", height: "auto" }}
         />
-        <h1 className="mt-8 max-w-xl text-4xl sm:text-5xl">Chocolates Rapanui en Posadas</h1>
+        <h1 className="mt-8 w-full text-center leading-none whitespace-nowrap text-[clamp(0.95rem,4.15vw,3rem)]">
+          Chocolates Rapanui en Posadas
+        </h1>
         <p className="mt-4 max-w-md text-base leading-relaxed text-sand">
           Pedidos con envío dentro de la ciudad, o retiro en el local.
         </p>
@@ -70,11 +76,10 @@ export default async function HomePage() {
       <Marquee items={ticker} />
 
       <section className="bg-surface px-6 py-20 text-center md:py-28">
-        <h2 className="text-4xl sm:text-6xl">Unidos x el chocolate</h2>
-        <p className="mx-auto mt-8 max-w-2xl text-lg leading-relaxed">
+        <h2 className="font-label text-4xl sm:text-6xl">Unidos x el chocolate</h2>
+        <p className="mx-auto mt-8 max-w-2xl font-label text-lg leading-relaxed">
           Koi es un emprendimiento chocolatero nacido de la unión de una pareja y de la pasión por compartir algo
-          especial. Busca acercar a los consumidores de Posadas chocolates y propuestas que se diferencien de las
-          opciones habituales, convirtiendo cada compra en una experiencia sensorial y emocional.
+          especial.
         </p>
         <Link href="/tienda" className={`${buttonClass.primary} mt-10`}>
           Entrar a la tienda
@@ -99,7 +104,7 @@ export default async function HomePage() {
       <Marquee items={ticker} />
 
       <section className="bg-primary px-6 py-16 text-primary-foreground md:py-24">
-        <h2 className="text-center text-4xl sm:text-5xl">Cómo se pide</h2>
+        <h2 className="text-center text-3xl sm:text-5xl">COMO HAGO MI PEDIDO</h2>
         <ol className="mx-auto mt-12 grid max-w-6xl gap-4 sm:grid-cols-2 lg:grid-cols-6">
           {steps.map((step, index) => (
             <li
@@ -120,7 +125,9 @@ export default async function HomePage() {
       <section className="bg-ink px-6 py-20 text-center md:py-28">
         <h2 className="text-4xl text-primary sm:text-6xl">Escribinos</h2>
         <p className="mx-auto mt-6 max-w-sm text-xl leading-relaxed text-primary">
-          Una consulta, un pedido, un retiro. Te respondemos por WhatsApp.
+          Una consulta, un pedido, un retiro.
+          <br />
+          Te respondemos por WhatsApp.
         </p>
         <a href={contactHref} target="_blank" rel="noopener noreferrer" className={`${buttonClass.inverse} mt-10`}>
           Contacto

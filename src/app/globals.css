@@ -53,6 +53,10 @@
 }
 
 @layer base {
+  html {
+    background-color: var(--koi-background);
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
     line-height: 1.6;
