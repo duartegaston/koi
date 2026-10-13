@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { InputField } from "@/components/ui/field";
-import { streetSearchText } from "@/lib/geocoding/address-query";
+import { houseNumber, streetSearchText } from "@/lib/geocoding/address-query";
 
 type Suggestion = { id: string; label: string };
 
@@ -23,6 +23,7 @@ export function AddressSuggest({
   const [active, setActive] = useState(0);
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "empty" | "error">("idle");
   const activeSuggestion = suggestions[active];
+  const needsHeight = !houseNumber(value);
   const activeId = open && status === "ready" && activeSuggestion ? `${listId}-${active}` : undefined;
 
   useEffect(() => {
@@ -159,6 +160,9 @@ export function AddressSuggest({
                 </li>
               ))}
             </ul>
+          ) : null}
+          {status === "ready" && needsHeight ? (
+            <p className="border-t border-line px-4 py-3 text-sm text-muted">Agregá la altura, por ejemplo 1250.</p>
           ) : null}
         </div>
       ) : null}

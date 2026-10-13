@@ -1,5 +1,6 @@
 import "server-only";
 
+import { houseNumber } from "@/lib/geocoding/address-query";
 import { isInsidePosadas, nominatimViewbox, placeNameIncludes } from "@/lib/geocoding/posadas";
 
 export type AddressSuggestion = {
@@ -61,29 +62,35 @@ export async function suggestAddresses(
     return "unavailable";
   }
 
-  const suggestions = readSuggestions(payload);
+  const suggestions = readSuggestions(payload, houseNumber(text));
   remember(key, suggestions);
   return suggestions;
 }
 
-function readSuggestions(payload: unknown): AddressSuggestion[] {
+function readSuggestions(payload: unknown, typedNumber: string | null): AddressSuggestion[] {
   if (!Array.isArray(payload)) return [];
 
-  const seen = new Set<string>();
-  const suggestions: AddressSuggestion[] = [];
+  const houses: AddressSuggestion[] = [];
+  const streets: AddressSuggestion[] = [];
   for (const item of payload) {
-    const suggestion = readSuggestion(item);
-    if (!suggestion) continue;
-    const key = suggestion.label.toLocaleLowerCase("es-AR");
-    if (seen.has(key)) continue;
-    seen.add(key);
-    suggestions.push(suggestion);
-    if (suggestions.length >= 6) break;
+    const draft = readDraft(item);
+    if (!draft) continue;
+    if (draft.kind === "house") houses.push(draft.suggestion);
+    else streets.push(withTypedNumber(draft.suggestion, typedNumber));
   }
-  return suggestions;
+
+  const matchingHouses = typedNumber
+    ? houses.filter((suggestion) => suggestion.label.includes(` ${typedNumber}`))
+    : houses;
+  return dedupe(matchingHouses.length > 0 ? matchingHouses : streets);
 }
 
-function readSuggestion(value: unknown): AddressSuggestion | null {
+type Draft = {
+  kind: "house" | "street";
+  suggestion: AddressSuggestion;
+};
+
+function readDraft(value: unknown): Draft | null {
   if (!value || typeof value !== "object") return null;
   const hit = value as Record<string, unknown>;
   const address = hit.address;
@@ -102,36 +109,50 @@ function readSuggestion(value: unknown): AddressSuggestion | null {
     return null;
   }
 
-  if (!isStreetOrHouse(hit, details)) return null;
-
   const id = typeof hit.place_id === "number" && Number.isSafeInteger(hit.place_id) ? String(hit.place_id) : null;
-  const label = labelFor(details);
-  if (!id || !label) return null;
-  return { id, label };
-}
-
-function isStreetOrHouse(hit: Record<string, unknown>, details: Record<string, unknown>): boolean {
   const road = firstString(details, ["road"]);
-  const number = firstString(details, ["house_number"]);
-  if (hit.category === "highway" && hit.type !== "bus_stop" && road) return true;
-  if (hit.category === "place" && hit.type === "house" && road && number) return true;
-  if (hit.category === "building" && road && number) return true;
-  return false;
-}
+  if (!id || !road) return null;
 
-function labelFor(details: Record<string, unknown>): string | null {
-  const road = firstString(details, ["road"]);
-  const number = firstString(details, ["house_number"]);
-  const neighbourhood = firstString(details, ["neighbourhood"]);
-  if (!road) return null;
-
-  const line = number ? `${road} ${number}` : road;
-  if (!neighbourhood || line.toLocaleLowerCase("es-AR").includes(neighbourhood.toLocaleLowerCase("es-AR"))) {
-    return line.length <= 140 ? line : null;
+  const mappedNumber = firstString(details, ["house_number"]);
+  const isHouse =
+    Boolean(mappedNumber) &&
+    ((hit.category === "place" && hit.type === "house") || hit.category === "building");
+  if (isHouse && mappedNumber) {
+    return { kind: "house", suggestion: { id, label: houseLabel(road, mappedNumber, firstString(details, ["neighbourhood"])) } };
   }
 
+  if (hit.category === "highway" && hit.type !== "bus_stop") {
+    return road.length <= 140 ? { kind: "street", suggestion: { id, label: road } } : null;
+  }
+  return null;
+}
+
+function houseLabel(road: string, number: string, neighbourhood: string | null): string {
+  const line = `${road} ${number}`;
+  if (!neighbourhood || line.toLocaleLowerCase("es-AR").includes(neighbourhood.toLocaleLowerCase("es-AR"))) {
+    return line.slice(0, 140);
+  }
   const withNeighbourhood = `${line}, ${neighbourhood}`;
-  return withNeighbourhood.length <= 140 ? withNeighbourhood : line;
+  return withNeighbourhood.length <= 140 ? withNeighbourhood : line.slice(0, 140);
+}
+
+function withTypedNumber(suggestion: AddressSuggestion, typedNumber: string | null): AddressSuggestion {
+  if (!typedNumber) return suggestion;
+  const label = `${suggestion.label} ${typedNumber}`;
+  return label.length <= 140 ? { ...suggestion, label } : suggestion;
+}
+
+function dedupe(suggestions: AddressSuggestion[]): AddressSuggestion[] {
+  const seen = new Set<string>();
+  const unique: AddressSuggestion[] = [];
+  for (const suggestion of suggestions) {
+    const key = suggestion.label.toLocaleLowerCase("es-AR");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(suggestion);
+    if (unique.length >= 6) break;
+  }
+  return unique;
 }
 
 function firstString(record: Record<string, unknown>, keys: string[]): string | null {
