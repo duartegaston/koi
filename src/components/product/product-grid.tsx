@@ -13,12 +13,12 @@ export function FeaturedRail({ products }: { products: CatalogProduct[] }) {
   );
 }
 
-export function ProductGrid({ products }: { products: CatalogProduct[] }) {
+export function ProductGrid({ products, priorityCount = 2 }: { products: CatalogProduct[]; priorityCount?: number }) {
   return (
     <ul className="grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-3 md:gap-x-8">
       {products.map((product, index) => (
         <li key={product.id}>
-          <ProductCard product={product} priority={index < 2} />
+          <ProductCard product={product} priority={index < priorityCount} />
         </li>
       ))}
     </ul>

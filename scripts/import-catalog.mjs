@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
-import { copyFileSync, mkdirSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import postgres from "postgres";
@@ -8,7 +9,8 @@ const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 const workbookPath = path.join(repoRoot, "KOI .xlsx");
 const imageDir =
   process.env.CATALOG_IMAGE_DIR ?? path.resolve(repoRoot, "../../imagenes rapanui");
-const publicDir = path.join(repoRoot, "public", "productos");
+const wranglerBin = path.join(repoRoot, "node_modules", ".bin", "wrangler");
+const imageBucket = "koi-product-images";
 
 const categoryLabels = {
   RAMA: "Ramas",
@@ -232,14 +234,35 @@ function imageExtension(filePath) {
   throw new Error(`Formato de imagen no reconocido: ${filePath}`);
 }
 
-function copyImages(products) {
-  rmSync(publicDir, { recursive: true, force: true });
-  mkdirSync(publicDir, { recursive: true });
+const contentTypeByExtension = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  webp: "image/webp",
+};
+
+function uploadImages(products) {
   for (const product of products) {
     const extension = imageExtension(product.imagePath);
-    const fileName = `${product.slug}.${extension}`;
-    copyFileSync(product.imagePath, path.join(publicDir, fileName));
-    product.imageUrl = `/productos/${fileName}`;
+    const contentType = contentTypeByExtension[extension];
+    const objectKey = randomUUID();
+    execFileSync(
+      wranglerBin,
+      [
+        "r2",
+        "object",
+        "put",
+        `${imageBucket}/${objectKey}`,
+        "--file",
+        product.imagePath,
+        "--content-type",
+        contentType,
+        "--remote",
+        "--force",
+      ],
+      { cwd: repoRoot, stdio: "inherit" },
+    );
+    product.objectKey = objectKey;
+    product.imageUrl = `/media/${objectKey}`;
   }
 }
 
@@ -251,7 +274,7 @@ if (!connectionString) {
 
 const loaded = loadProducts();
 const products = assignSlugs(loaded.products);
-copyImages(products);
+uploadImages(products);
 
 const categories = [];
 for (const product of products) {
@@ -306,8 +329,8 @@ try {
         returning id
       `;
       await tx`
-        insert into product_images (product_id, url, alt, sort_order)
-        values (${inserted[0].id}, ${product.imageUrl}, ${product.name}, 0)
+        insert into product_images (product_id, url, alt, sort_order, object_key)
+        values (${inserted[0].id}, ${product.imageUrl}, ${product.name}, 0, ${product.objectKey})
       `;
     }
 

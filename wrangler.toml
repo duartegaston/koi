@@ -27,3 +27,5 @@ APP_URL = "https://koi.koichocolates.workers.dev"
 [[r2_buckets]]
 binding = "PRODUCT_IMAGES"
 bucket_name = "koi-product-images"
+# La base ya apunta a objetos de este bucket. En next dev hay que leer el mismo R2.
+remote = true

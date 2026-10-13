@@ -76,7 +76,7 @@ export async function listProducts(filter: ProductListFilter = {}, db?: DbExecut
     .from(products)
     .innerJoin(categories, eq(categories.id, products.categoryId))
     .where(visibleProduct(filter))
-    .orderBy(asc(categories.sortOrder), asc(products.name));
+    .orderBy(asc(categories.sortOrder), asc(categories.name), asc(products.name));
 
   return withImages(rows, db);
 }

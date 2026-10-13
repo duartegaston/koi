@@ -50,7 +50,7 @@ export function CategoryMenu({ categories }: { categories: CategoryLink[] }) {
         aria-controls={menuId}
         onClick={() => setOpen((current) => !current)}
       >
-        Categorías
+        Productos
         <Chevron open={open} />
       </button>
       {open ? (

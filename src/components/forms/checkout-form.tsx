@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { submitCheckout, type CheckoutState, type DeliveryQuoteView } from "@/actions/checkout";
+import { AddressSuggest } from "@/components/forms/address-suggest";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { InputField } from "@/components/ui/field";
@@ -212,14 +213,10 @@ function CheckoutFields({
 
           {fulfillment === "motorcycle" ? (
             <div className="space-y-3 pt-2">
-              <InputField
-                label="Dirección en Posadas"
-                name="address"
-                autoComplete="street-address"
-                required
+              <AddressSuggest
                 value={address}
-                onChange={(event) => {
-                  setAddress(event.target.value);
+                onChange={(next) => {
+                  setAddress(next);
                   setAddressDirty(true);
                 }}
                 errors={errors?.address}
