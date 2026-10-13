@@ -1,5 +1,7 @@
 import "server-only";
 
+import { isInsidePosadas, nominatimViewbox, placeNameIncludes } from "@/lib/geocoding/posadas";
+
 export type GeocodedPlace = {
   formattedAddress: string;
   city: string;
@@ -8,7 +10,7 @@ export type GeocodedPlace = {
   longitude: number;
 };
 
-export type GeocodeFailure = "not_found" | "unavailable";
+export type GeocodeFailure = "not_found" | "outside" | "unavailable";
 
 type NominatimAddress = {
   city?: string;
@@ -30,8 +32,9 @@ export async function geocodeAddress(query: string): Promise<GeocodedPlace | Geo
   const url = new URL("https://nominatim.openstreetmap.org/search");
   url.searchParams.set("format", "jsonv2");
   url.searchParams.set("addressdetails", "1");
-  url.searchParams.set("limit", "1");
+  url.searchParams.set("limit", "5");
   url.searchParams.set("countrycodes", "ar");
+  url.searchParams.set("viewbox", nominatimViewbox());
   url.searchParams.set("q", query);
 
   let response: Response;
@@ -59,18 +62,40 @@ export async function geocodeAddress(query: string): Promise<GeocodedPlace | Geo
     return "unavailable";
   }
 
-  const hit = Array.isArray(payload) ? payload[0] : undefined;
-  if (!isHit(hit)) {
-    return "not_found";
+  const hits = readHits(payload);
+  const match = hits.find(
+    (hit) =>
+      isInsidePosadas(hit.latitude, hit.longitude) &&
+      placeNameIncludes(hit.city, "Posadas") &&
+      placeNameIncludes(hit.province, "Misiones"),
+  );
+  if (match) return match;
+  return hits.length > 0 ? "outside" : "not_found";
+}
+
+function readHits(payload: unknown): GeocodedPlace[] {
+  if (!Array.isArray(payload)) return [];
+
+  const hits: GeocodedPlace[] = [];
+  for (const value of payload) {
+    const hit = readHit(value);
+    if (hit) hits.push(hit);
+  }
+  return hits;
+}
+
+function readHit(value: unknown): GeocodedPlace | null {
+  if (!value || typeof value !== "object") return null;
+  const hit = value as NominatimHit;
+  if (typeof hit.lat !== "string" || typeof hit.lon !== "string" || typeof hit.display_name !== "string" || !hit.address) {
+    return null;
   }
 
   const latitude = Number(hit.lat);
   const longitude = Number(hit.lon);
   const city = hit.address.city ?? hit.address.town ?? hit.address.village ?? hit.address.municipality;
   const province = hit.address.state;
-  if (!city || !province || !Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-    return "not_found";
-  }
+  if (!city || !province || !Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
 
   return {
     formattedAddress: hit.display_name,
@@ -79,12 +104,4 @@ export async function geocodeAddress(query: string): Promise<GeocodedPlace | Geo
     latitude,
     longitude,
   };
-}
-
-function isHit(value: unknown): value is NominatimHit & { address: NominatimAddress; display_name: string; lat: string; lon: string } {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-  const hit = value as NominatimHit;
-  return typeof hit.lat === "string" && typeof hit.lon === "string" && typeof hit.display_name === "string" && !!hit.address;
 }

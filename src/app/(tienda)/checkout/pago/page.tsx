@@ -3,7 +3,10 @@ import Link from "next/link";
 import { findPaymentByOrderId } from "@/data-access/payment.repository";
 import { findOrderByPublicCode } from "@/data-access/order.repository";
 
-export const metadata: Metadata = { title: "Pago" };
+export const metadata: Metadata = {
+  title: "Pago",
+  robots: { index: false, follow: false },
+};
 export const dynamic = "force-dynamic";
 
 const publicCodePattern = /^KOI-[A-Z0-9]{8}$/;

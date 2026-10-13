@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Josefin_Sans, Source_Serif_4 } from "next/font/google";
+import { getSiteUrl } from "@/lib/seo";
+import { defaultOgImage, homeDescription, homeTitle, siteName } from "@/lib/site";
 import "./globals.css";
 
 const label = Josefin_Sans({
@@ -16,10 +18,28 @@ const publication = Source_Serif_4({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: { default: "Koi", template: "%s | Koi" },
-  description: "Pedidos con envío dentro de Posadas o retiro en el local.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    metadataBase: new URL(getSiteUrl()),
+    title: { default: homeTitle, template: `%s | ${siteName}` },
+    description: homeDescription,
+    applicationName: siteName,
+    openGraph: {
+      type: "website",
+      locale: "es_AR",
+      siteName,
+      title: homeTitle,
+      description: homeDescription,
+      images: [{ url: defaultOgImage, alt: "koi. unidos x el chocolate", width: 1200, height: 630 }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: homeTitle,
+      description: homeDescription,
+      images: [defaultOgImage],
+    },
+  };
+}
 
 // Los secretos viven en el Worker, no en el build de Git. Sin esto Next
 // prerenderiza páginas como /contacto y falla porque no hay .env.

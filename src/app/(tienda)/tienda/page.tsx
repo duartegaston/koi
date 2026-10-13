@@ -1,26 +1,45 @@
 import type { Metadata } from "next";
 import { ProductGrid } from "@/components/product/product-grid";
 import { EmptyState } from "@/components/ui/empty-state";
+import { JsonLd } from "@/components/ui/json-ld";
 import type { CatalogProduct } from "@/data-access/product.repository";
 import { getProducts } from "@/lib/catalog";
+import { breadcrumbJsonLd, itemListJsonLd, pageMetadata } from "@/lib/seo";
+import { shopDescription, shopTitle } from "@/lib/site";
 
-export const metadata: Metadata = {
-  title: "Productos",
-  description: "Todos los chocolates de Koi, para envío en Posadas o retiro en el local.",
-};
+export const metadata: Metadata = pageMetadata({
+  title: shopTitle,
+  description: shopDescription,
+  path: "/tienda",
+});
 
 export default async function ShopPage() {
   const products = await getProducts();
+  const groups = groupInStockThenMadeToOrder(products);
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-16 text-center md:py-20">
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: "Inicio", path: "/" },
+          { name: "Productos", path: "/tienda" },
+        ])}
+      />
+      <JsonLd
+        data={itemListJsonLd(
+          "Productos",
+          groups.flatMap((group) =>
+            group.products.map((product) => ({ name: product.name, path: `/producto/${product.slug}` })),
+          ),
+        )}
+      />
       <p className="font-label text-sm tracking-wide text-muted">Tienda</p>
       <h1 className="mt-3 text-5xl md:text-7xl">Productos</h1>
       <div className="mt-14 space-y-16 text-left">
         {products.length === 0 ? (
           <EmptyState title="Todavía no hay productos" body="Cuando se cargue el catálogo, vas a verlos acá." />
         ) : (
-          groupInStockThenMadeToOrder(products).map((group, index) => (
+          groups.map((group, index) => (
             <section
               key={`${group.availability}-${group.slug}`}
               aria-labelledby={`categoria-${group.availability}-${group.slug}`}

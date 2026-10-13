@@ -1,11 +1,22 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { FeaturedRail } from "@/components/product/product-grid";
 import { buttonClass } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { JsonLd } from "@/components/ui/json-ld";
 import { Marquee } from "@/components/ui/marquee";
 import { getProducts } from "@/lib/catalog";
+import { howToOrderJsonLd, pageMetadata } from "@/lib/seo";
+import { homeDescription, homeTitle } from "@/lib/site";
 import { storeContactWhatsAppUrl } from "@/lib/whatsapp/link";
+
+export const metadata: Metadata = pageMetadata({
+  title: homeTitle,
+  description: homeDescription,
+  path: "/",
+  absoluteTitle: true,
+});
 
 const ticker = ["Chocolates Rapanui", "Envío en Posadas"];
 
@@ -43,6 +54,7 @@ export default async function HomePage() {
 
   return (
     <>
+      <JsonLd data={howToOrderJsonLd(steps)} />
       <section className="relative flex min-h-[calc(100dvh-6.5rem)] flex-col items-center justify-center bg-ink px-6 pt-16 pb-36 text-center text-paper">
         <Image
           src="/brand/lockup.png"
@@ -132,6 +144,9 @@ export default async function HomePage() {
         <a href={contactHref} target="_blank" rel="noopener noreferrer" className={`${buttonClass.inverse} mt-10`}>
           Contacto
         </a>
+        <Link href="/contacto" className="mt-6 inline-flex min-h-11 items-center font-label text-sm text-sand underline-offset-4 hover:underline">
+          Dejar un mensaje
+        </Link>
       </section>
     </>
   );

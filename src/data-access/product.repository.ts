@@ -70,6 +70,48 @@ export async function listCategories(db?: DbExecutor) {
     .orderBy(asc(categories.sortOrder), asc(categories.name));
 }
 
+export type CatalogIndex = {
+  categories: { slug: string; updatedAt: Date }[];
+  products: { slug: string; updatedAt: Date; images: string[] }[];
+};
+
+export async function listCatalogIndex(db?: DbExecutor): Promise<CatalogIndex> {
+  const categoryRows = await executor(db)
+    .select({ slug: categories.slug, updatedAt: categories.updatedAt })
+    .from(categories)
+    .where(eq(categories.isActive, true));
+
+  const productRows = await executor(db)
+    .select({
+      slug: products.slug,
+      updatedAt: products.updatedAt,
+      imageUrl: productImages.url,
+    })
+    .from(products)
+    .innerJoin(categories, eq(categories.id, products.categoryId))
+    .leftJoin(productImages, eq(productImages.productId, products.id))
+    .where(visibleProduct())
+    .orderBy(asc(products.slug), asc(productImages.sortOrder));
+
+  const bySlug = new Map<string, { slug: string; updatedAt: Date; images: string[] }>();
+  for (const row of productRows) {
+    const current = bySlug.get(row.slug);
+    if (!current) {
+      bySlug.set(row.slug, {
+        slug: row.slug,
+        updatedAt: row.updatedAt,
+        images: row.imageUrl ? [row.imageUrl] : [],
+      });
+      continue;
+    }
+    if (row.imageUrl && !current.images.includes(row.imageUrl)) {
+      current.images.push(row.imageUrl);
+    }
+  }
+
+  return { categories: categoryRows, products: [...bySlug.values()] };
+}
+
 export async function listProducts(filter: ProductListFilter = {}, db?: DbExecutor): Promise<CatalogProduct[]> {
   const rows = await executor(db)
     .select(productColumns)

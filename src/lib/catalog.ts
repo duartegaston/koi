@@ -1,7 +1,7 @@
 import "server-only";
 
 import { cache } from "react";
-import { findProductBySlug, listCategories, listProducts } from "@/data-access/product.repository";
+import { findProductBySlug, listCatalogIndex, listCategories, listProducts } from "@/data-access/product.repository";
 
 export const getCategories = cache(listCategories);
 
@@ -13,3 +13,5 @@ export const getProducts = cache((categorySlug?: string, featuredOnly = false) =
 );
 
 export const getProduct = cache(findProductBySlug);
+
+export const getCatalogIndex = cache(listCatalogIndex);

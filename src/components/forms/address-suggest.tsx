@@ -112,6 +112,7 @@ export function AddressSuggest({
         label="Dirección en Posadas"
         name="address"
         autoComplete="off"
+        placeholder="Calle y altura"
         required
         role="combobox"
         aria-autocomplete="list"
@@ -128,15 +129,15 @@ export function AddressSuggest({
       />
       {open ? (
         <div className="absolute top-full right-0 left-0 z-30 mt-1 border border-line bg-paper shadow-lg">
-          {status === "loading" ? <p className="px-4 py-3 text-sm text-muted">Buscando calles…</p> : null}
+          {status === "loading" ? <p className="px-4 py-3 text-sm text-muted">Buscando en Posadas…</p> : null}
           {status === "error" ? (
             <p className="px-4 py-3 text-sm text-muted" role="status">
-              No pudimos buscar calles. Podés seguir escribiendo la dirección.
+              No pudimos buscar direcciones. Podés seguir escribiendo y calcular el envío.
             </p>
           ) : null}
           {status === "empty" ? (
             <p className="px-4 py-3 text-sm text-muted" role="status">
-              No hay calles con ese nombre en Posadas.
+              No hay direcciones así en Posadas. Podés seguir escribiendo y calcular el envío.
             </p>
           ) : null}
           {status === "ready" ? (

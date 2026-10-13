@@ -2,20 +2,28 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ProductGrid } from "@/components/product/product-grid";
 import { EmptyState } from "@/components/ui/empty-state";
+import { JsonLd } from "@/components/ui/json-ld";
 import { getCategories, getProducts } from "@/lib/catalog";
+import { breadcrumbJsonLd, describePage, itemListJsonLd, pageMetadata } from "@/lib/seo";
 
 type CategoryPageProps = {
   params: Promise<{ slug: string }>;
 };
 
+function categoryTitle(name: string): string {
+  if (/chocolate/i.test(name)) return `${name} Rapanui con envío en Posadas`;
+  return `${name}, chocolates Rapanui en Posadas`;
+}
+
 export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
   const { slug } = await params;
   const category = (await getCategories()).find((item) => item.slug === slug);
   if (!category) notFound();
-  return {
-    title: category.name,
-    description: category.description ?? category.name,
-  };
+  return pageMetadata({
+    title: categoryTitle(category.name),
+    description: describePage(category.description ?? ""),
+    path: `/categoria/${category.slug}`,
+  });
 }
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
@@ -27,6 +35,18 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-16 text-center md:py-20">
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: "Inicio", path: "/" },
+          { name: category.name, path: `/categoria/${category.slug}` },
+        ])}
+      />
+      <JsonLd
+        data={itemListJsonLd(
+          category.name,
+          products.map((product) => ({ name: product.name, path: `/producto/${product.slug}` })),
+        )}
+      />
       <p className="font-label text-sm tracking-wide text-muted">Categoría</p>
       <h1 className="mt-3 text-5xl md:text-7xl">{category.name}</h1>
       {category.description ? (

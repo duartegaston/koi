@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { suggestAddresses } from "@/lib/geocoding/georef";
+import { suggestAddresses } from "@/lib/geocoding/suggest";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     return Response.json({ suggestions: [] }, { headers: { "Cache-Control": "no-store" } });
   }
 
-  const suggestions = await suggestAddresses(query);
+  const suggestions = await suggestAddresses(query, request.signal);
   if (suggestions === "unavailable") {
     return Response.json({ suggestions: [] }, { status: 503, headers: { "Cache-Control": "no-store" } });
   }

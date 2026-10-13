@@ -3,7 +3,10 @@ import { CheckoutForm } from "@/components/forms/checkout-form";
 import { readCartSnapshot } from "@/lib/cart-session";
 import { getStoreOptions } from "@/services/shipping.service";
 
-export const metadata: Metadata = { title: "Checkout" };
+export const metadata: Metadata = {
+  title: "Checkout",
+  robots: { index: false, follow: false },
+};
 
 export default async function CheckoutPage() {
   const cart = await readCartSnapshot();

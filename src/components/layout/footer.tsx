@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { Wordmark } from "@/components/layout/wordmark";
+import { instagramUrl, storeHourLines } from "@/lib/site";
 import { storeContactWhatsAppUrl } from "@/lib/whatsapp/link";
-
-const instagramHref = "https://www.instagram.com/koi.chocolates?dlrf=djhhanE4OXNqbXAy&utm_source=qr";
 
 export function Footer() {
   const contactHref = storeContactWhatsAppUrl();
@@ -36,12 +35,13 @@ export function Footer() {
           <div>
             <p className="font-label tracking-wide">Horarios</p>
             <ul className="mt-1 list-disc space-y-1 pl-4 marker:text-muted">
-              <li>Lunes a viernes de 10:30 a 16:00 y 20:00 a 23:00.</li>
-              <li>Sábados de 11:30 a 15:00 y 18:30 a 20:30.</li>
+              {storeHourLines.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
             </ul>
           </div>
           <a
-            href={instagramHref}
+            href={instagramUrl}
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Instagram de Koi"

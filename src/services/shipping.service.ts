@@ -3,6 +3,7 @@ import "server-only";
 import { findShippingZone } from "@/data-access/shipping.repository";
 import { distanceKm } from "@/lib/geo";
 import { geocodeAddress } from "@/lib/geocoding/nominatim";
+import { isInsidePosadas, placeNameIncludes } from "@/lib/geocoding/posadas";
 import { readStoreConfig } from "@/lib/store-config";
 import { fail, type ServiceResult } from "./result";
 
@@ -60,7 +61,12 @@ export async function quoteDelivery(address: string): Promise<ServiceResult<Deli
   if (place === "not_found") {
     return fail("address_not_found", "No encontramos esa dirección.");
   }
-  if (!samePlace(place.city, store.city) || !samePlace(place.province, store.province)) {
+  if (
+    place === "outside" ||
+    !isInsidePosadas(place.latitude, place.longitude) ||
+    !placeNameIncludes(place.city, store.city) ||
+    !placeNameIncludes(place.province, store.province)
+  ) {
     return fail("outside_posadas", "Por ahora el envío es solo dentro de Posadas, Misiones.");
   }
 
@@ -93,16 +99,3 @@ export async function quoteDelivery(address: string): Promise<ServiceResult<Deli
   };
 }
 
-function samePlace(value: string, expected: string): boolean {
-  const left = normalizePlace(value);
-  const right = normalizePlace(expected);
-  return left === right || left.includes(right);
-}
-
-function normalizePlace(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase()
-    .trim();
-}
