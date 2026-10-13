@@ -3,7 +3,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { emptyCart, type CartLineSnapshot, type CartSnapshot } from "@/lib/cart-types";
 import { orderQuantityLimit } from "@/lib/order-limits";
-import { createCart, getCart, type CartView } from "@/services/cart.service";
+import { createCart, getCart, requireOpenCart, type CartView } from "@/services/cart.service";
 
 export const CART_COOKIE = "koi_cart";
 
@@ -48,6 +48,23 @@ async function readCartId(): Promise<string | null> {
   return value;
 }
 
+export async function readOpenCartId(): Promise<string | null> {
+  const id = await readCartId();
+  if (!id) return null;
+  const cart = await requireOpenCart(id);
+  return cart.ok ? cart.value.id : null;
+}
+
+export async function ensureOpenCartId(): Promise<string> {
+  const existing = await readOpenCartId();
+  if (existing) return existing;
+
+  const created = await createCart();
+  const jar = await cookies();
+  jar.set(CART_COOKIE, created.id, cookieOptions(WEEK_SECONDS));
+  return created.id;
+}
+
 export async function readCartSnapshot(): Promise<CartSnapshot> {
   const cart = await readOpenCart();
   return cart ? toSnapshot(cart) : emptyCart;
@@ -58,16 +75,6 @@ export async function readOpenCart(): Promise<CartView | null> {
   if (!id) return null;
   const cart = await getCart(id);
   return cart.ok ? cart.value : null;
-}
-
-export async function ensureOpenCart(): Promise<CartView> {
-  const existing = await readOpenCart();
-  if (existing) return existing;
-
-  const created = await createCart();
-  const jar = await cookies();
-  jar.set(CART_COOKIE, created.id, cookieOptions(WEEK_SECONDS));
-  return created;
 }
 
 export async function clearCartCookie() {

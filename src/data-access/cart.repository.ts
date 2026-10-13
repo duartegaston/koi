@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { schema } from "@/db";
 import { executor, firstRow, type DbExecutor } from "./executor";
 
@@ -102,6 +102,28 @@ export async function listCartLines(cartId: string, db?: DbExecutor): Promise<Ca
     ...line,
     imageUrl: coverByProduct.get(line.productId) ?? null,
   }));
+}
+
+export async function incrementCartItem(
+  cartId: string,
+  productId: string,
+  by: number,
+  db?: DbExecutor,
+) {
+  return firstRow(
+    await executor(db)
+      .insert(cartItems)
+      .values({ cartId, productId, quantity: by })
+      .onConflictDoUpdate({
+        target: [cartItems.cartId, cartItems.productId],
+        set: {
+          quantity: sql`${cartItems.quantity} + ${by}`,
+          updatedAt: new Date(),
+        },
+      })
+      .returning({ quantity: cartItems.quantity }),
+    "No se pudo guardar el ítem del carrito",
+  );
 }
 
 export async function setCartItemQuantity(

@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { Wordmark } from "@/components/layout/wordmark";
+import { storeContactWhatsAppUrl } from "@/lib/whatsapp/link";
 
 const instagramHref = "https://www.instagram.com/koi.chocolates?dlrf=djhhanE4OXNqbXAy&utm_source=qr";
 
 export function Footer() {
+  const contactHref = storeContactWhatsAppUrl();
+
   return (
     <footer className="border-t border-line bg-background">
       <div className="mx-auto grid max-w-6xl gap-10 px-6 py-14 md:grid-cols-[1.4fr_1fr_1fr]">
@@ -17,14 +20,14 @@ export function Footer() {
           <p className="font-label text-base tracking-wide text-muted">Tienda</p>
           <ul className="list-disc space-y-3 pl-4 marker:text-foreground">
             <li>
-              <Link href="/#tienda" className="underline-offset-4 hover:underline">
+              <Link href="/tienda" className="underline-offset-4 hover:underline">
                 Ver productos
               </Link>
             </li>
             <li>
-              <Link href="/contacto" className="underline-offset-4 hover:underline">
+              <a href={contactHref} target="_blank" rel="noopener noreferrer" className="underline-offset-4 hover:underline">
                 Contacto
-              </Link>
+              </a>
             </li>
           </ul>
         </nav>
@@ -33,8 +36,8 @@ export function Footer() {
           <div>
             <p className="font-label tracking-wide">Horarios</p>
             <ul className="mt-1 list-disc space-y-1 pl-4 marker:text-muted">
-              <li>Lu a vi de 10:30 a 16 y 20 a 23.</li>
-              <li>Sa de 11:30 a 15 y 18:30 a 20:30.</li>
+              <li>Lunes a viernes de 10:30 a 16:00 y 20:00 a 23:00.</li>
+              <li>Sábados de 11:30 a 15:00 y 18:30 a 20:30.</li>
             </ul>
           </div>
           <a

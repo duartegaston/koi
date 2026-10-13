@@ -1,29 +1,74 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import { useFormStatus } from "react-dom";
-import { addToCart, type CartActionState } from "@/actions/cart";
+import { useRef, useState } from "react";
+import { addToCart } from "@/actions/cart";
+import {
+  beginCartWrite,
+  endCartWrite,
+  publishCart,
+  readCart,
+  rollbackCart,
+  withAddedProduct,
+} from "@/components/layout/cart-store";
 import { Button } from "@/components/ui/button";
 import { availabilityNote, orderQuantityLimit } from "@/lib/order-limits";
 
-const idleCartState: CartActionState = { status: "idle" };
-
 export function AddToCart({
   productId,
+  name,
+  slug,
+  price,
+  imageUrl,
   stock,
   maxPerOrder,
 }: {
   productId: string;
+  name: string;
+  slug: string;
+  price: string;
+  imageUrl: string | null;
   stock: number;
   maxPerOrder: number | null;
 }) {
-  const [state, action] = useActionState(addToCart, idleCartState);
   const [quantity, setQuantity] = useState(1);
+  const [error, setError] = useState<string | null>(null);
+  const sending = useRef(false);
   const limit = orderQuantityLimit(maxPerOrder);
   const note = availabilityNote(quantity, stock);
 
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (sending.current) return;
+    const already = readCart().lines.find((line) => line.productId === productId)?.quantity ?? 0;
+    const next = already + quantity;
+    if (next > limit) {
+      setError(`Solo podés pedir ${limit} de ${name}.`);
+      return;
+    }
+
+    setError(null);
+    sending.current = true;
+    const previous = readCart();
+    beginCartWrite();
+    const writtenAt = publishCart(
+      withAddedProduct(previous, { id: productId, name, slug, price, stock, imageUrl, limit }, quantity),
+    );
+
+    const data = new FormData(event.currentTarget);
+    try {
+      const result = await addToCart(data);
+      if (result.status === "error") {
+        rollbackCart(writtenAt, previous);
+        setError(result.message);
+      }
+    } finally {
+      endCartWrite();
+      sending.current = false;
+    }
+  }
+
   return (
-    <form action={action} className="mt-8 space-y-3">
+    <form onSubmit={onSubmit} className="mt-8 space-y-3">
       <input type="hidden" name="productId" value={productId} />
       <input type="hidden" name="quantity" value={String(quantity)} />
       <div className="flex items-center gap-2">
@@ -54,21 +99,14 @@ export function AddToCart({
           {note}
         </p>
       ) : null}
-      <SubmitButton />
-      {state.status === "error" ? (
+      <Button type="submit" className="w-full md:w-auto md:min-w-48">
+        Agregar al carrito
+      </Button>
+      {error ? (
         <p role="alert" className="text-sm">
-          {state.message}
+          {error}
         </p>
       ) : null}
     </form>
-  );
-}
-
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending} className="w-full md:w-auto md:min-w-48">
-      {pending ? "Agregando…" : "Agregar al carrito"}
-    </Button>
   );
 }

@@ -42,7 +42,15 @@ export default async function ProductPage({ params }: ProductPageProps) {
             : "Sin stock."}
         </p>
         {product.maxPerOrder ? <p className="mt-1 text-sm text-muted">Máximo {product.maxPerOrder} por pedido.</p> : null}
-        <AddToCart productId={product.id} stock={product.stock} maxPerOrder={product.maxPerOrder} />
+        <AddToCart
+          productId={product.id}
+          name={product.name}
+          slug={product.slug}
+          price={product.price}
+          imageUrl={product.images[0]?.url ?? null}
+          stock={product.stock}
+          maxPerOrder={product.maxPerOrder}
+        />
       </div>
     </article>
   );

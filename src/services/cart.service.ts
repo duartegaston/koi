@@ -3,6 +3,7 @@ import "server-only";
 import {
   deleteCartItem,
   findCart,
+  incrementCartItem,
   insertCart,
   listCartLines,
   setCartItemQuantity,
@@ -50,6 +51,38 @@ export async function getCart(cartId: string): Promise<ServiceResult<CartView>> 
 
   const lines = await listCartLines(cartId);
   return { ok: true, value: toCartView(open.value, lines) };
+}
+
+export async function addQuantity(
+  cartId: string,
+  productId: string,
+  quantity: number,
+): Promise<ServiceResult<number>> {
+  if (!Number.isInteger(quantity) || quantity < 1) {
+    return fail("quantity_not_allowed", "La cantidad tiene que ser un número entero.");
+  }
+
+  const [cart, products] = await Promise.all([requireOpenCart(cartId), listProductsByIds([productId])]);
+  if (!cart.ok) return cart;
+
+  const product = products[0];
+  if (!product) {
+    return fail("product_unavailable", "Ese producto no está disponible.");
+  }
+  const limit = sellableLimit(product);
+  if (limit == null) {
+    return fail("product_unavailable", "Ese producto no está disponible.");
+  }
+
+  const saved = await incrementCartItem(cartId, productId, quantity);
+  if (saved.quantity > limit) {
+    const previous = saved.quantity - quantity;
+    if (previous <= 0) await deleteCartItem(cartId, productId);
+    else await setCartItemQuantity(cartId, productId, previous);
+    return fail("quantity_not_allowed", `Solo podés pedir ${limit} de ${product.name}.`);
+  }
+
+  return { ok: true, value: saved.quantity };
 }
 
 export async function changeQuantity(
@@ -102,7 +135,7 @@ export async function removeItem(cartId: string, productId: string): Promise<Ser
   return getCart(cartId);
 }
 
-async function requireOpenCart(cartId: string): Promise<ServiceResult<{ id: string; expiresAt: Date }>> {
+export async function requireOpenCart(cartId: string): Promise<ServiceResult<{ id: string; expiresAt: Date }>> {
   return openCart(await findCart(cartId));
 }
 

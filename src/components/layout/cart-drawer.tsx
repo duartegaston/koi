@@ -2,31 +2,77 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { setCartQuantity, type CartActionState } from "@/actions/cart";
 import { ProductImage } from "@/components/product/product-image";
 import { buttonClass } from "@/components/ui/button";
 import type { CartLineSnapshot, CartSnapshot } from "@/lib/cart-types";
-import { formatArs, multiplyAmount } from "@/lib/money";
+import { rememberDisplayed, useLiveCart } from "@/components/layout/cart-store";
+import { addAmounts, formatArs, multiplyAmount } from "@/lib/money";
 import { availabilityNote } from "@/lib/order-limits";
 import { cn } from "@/lib/utils";
 
 const idleCartState: CartActionState = { status: "idle" };
 
-export function CartDrawer({ cart }: { cart: CartSnapshot }) {
+export function CartDrawer({ cart: serverCart }: { cart: CartSnapshot }) {
+  const cart = useLiveCart(serverCart);
   const pathname = usePathname();
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const previousCount = useRef(cart.itemCount);
+  const previousCount = useRef<number | null>(null);
   const [open, setOpen] = useState(false);
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    setQuantities((current) => {
+      let changed = false;
+      const next: Record<string, number> = {};
+      for (const [productId, quantity] of Object.entries(current)) {
+        const line = cart.lines.find((item) => item.productId === productId);
+        if (!line || line.quantity === quantity) {
+          changed = true;
+          continue;
+        }
+        next[productId] = quantity;
+      }
+      return changed ? next : current;
+    });
+  }, [cart.lines]);
+
+  const onQuantity = useCallback((productId: string, quantity: number) => {
+    setQuantities((current) => {
+      const line = cart.lines.find((item) => item.productId === productId);
+      if (line && line.quantity === quantity) {
+        if (!(productId in current)) return current;
+        const next = { ...current };
+        delete next[productId];
+        return next;
+      }
+      if (current[productId] === quantity) return current;
+      return { ...current, [productId]: quantity };
+    });
+  }, [cart.lines]);
+
+  const shownLines = cart.lines.map((line) => {
+    const quantity = quantities[line.productId] ?? line.quantity;
+    return { ...line, quantity, lineTotal: multiplyAmount(line.unitPrice, quantity) };
+  });
+  const visibleLines = shownLines.filter((line) => line.quantity > 0);
+  const itemCount = visibleLines.reduce((count, line) => count + line.quantity, 0);
+  const subtotal = visibleLines.reduce((sum, line) => addAmounts(sum, line.lineTotal), "0.00");
+  rememberDisplayed({ lines: shownLines, itemCount, subtotal });
 
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
 
   useEffect(() => {
-    if (cart.itemCount > previousCount.current) setOpen(true);
-    previousCount.current = cart.itemCount;
-  }, [cart.itemCount]);
+    if (previousCount.current === null) {
+      previousCount.current = itemCount;
+      return;
+    }
+    if (itemCount > previousCount.current) setOpen(true);
+    previousCount.current = itemCount;
+  }, [itemCount]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -35,21 +81,21 @@ export function CartDrawer({ cart }: { cart: CartSnapshot }) {
     if (!open && dialog.open) dialog.close();
   }, [open]);
 
-  const blocked = cart.lines.some((line) => line.problem);
-  const countLabel = cart.itemCount === 1 ? "1 producto" : `${cart.itemCount} productos`;
+  const blocked = visibleLines.some((line) => line.problem);
+  const countLabel = itemCount === 1 ? "1 producto" : `${itemCount} productos`;
 
   return (
     <>
       <button
         type="button"
         className="relative inline-flex h-11 w-11 items-center justify-center rounded-full bg-paper text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-        aria-label={cart.itemCount > 0 ? `Abrir carrito, ${countLabel}` : "Abrir carrito"}
+        aria-label={itemCount > 0 ? `Abrir carrito, ${countLabel}` : "Abrir carrito"}
         onClick={() => setOpen(true)}
       >
         <CartIcon />
-        {cart.itemCount > 0 ? (
+        {itemCount > 0 ? (
           <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-ink px-1 font-label text-xs leading-none text-paper ring-2 ring-ink">
-            {cart.itemCount}
+            {itemCount}
           </span>
         ) : null}
       </button>
@@ -72,7 +118,14 @@ export function CartDrawer({ cart }: { cart: CartSnapshot }) {
             </button>
           </div>
 
-          {cart.lines.length === 0 ? (
+          <ul hidden={visibleLines.length === 0} className="flex-1 divide-y divide-line overflow-y-auto">
+            {cart.lines.map((line) => (
+              <li key={line.productId} hidden={(quantities[line.productId] ?? line.quantity) === 0}>
+                <CartLine line={line} onQuantity={onQuantity} />
+              </li>
+            ))}
+          </ul>
+          {visibleLines.length === 0 ? (
             <div className="flex flex-1 flex-col items-start justify-center gap-4 px-5">
               <p>El carrito está vacío.</p>
               <a
@@ -86,34 +139,25 @@ export function CartDrawer({ cart }: { cart: CartSnapshot }) {
               </a>
             </div>
           ) : (
-            <>
-              <ul className="flex-1 divide-y divide-line overflow-y-auto">
-                {cart.lines.map((line) => (
-                  <li key={line.productId}>
-                    <CartLine line={line} />
-                  </li>
-                ))}
-              </ul>
-              <div className="space-y-4 border-t border-line p-5">
-                <div className="flex items-center justify-between text-sm">
-                  <span>Subtotal</span>
-                  <span>{formatArs(cart.subtotal)}</span>
-                </div>
-                {blocked ? (
-                  <p className="text-sm" role="status">
-                    Hay productos que ya no se pueden pedir en esa cantidad. Ajustá el carrito para continuar.
-                  </p>
-                ) : null}
-                <Link
-                  href="/checkout"
-                  aria-disabled={blocked}
-                  className={cn(buttonClass.primary, "w-full", blocked && "pointer-events-none opacity-50")}
-                  onClick={() => setOpen(false)}
-                >
-                  Continuar
-                </Link>
+            <div className="space-y-4 border-t border-line p-5">
+              <div className="flex items-center justify-between text-sm">
+                <span>Subtotal</span>
+                <span>{formatArs(subtotal)}</span>
               </div>
-            </>
+              {blocked ? (
+                <p className="text-sm" role="status">
+                  Hay productos que ya no se pueden pedir en esa cantidad. Ajustá el carrito para continuar.
+                </p>
+              ) : null}
+              <Link
+                href="/checkout"
+                aria-disabled={blocked}
+                className={cn(buttonClass.primary, "w-full", blocked && "pointer-events-none opacity-50")}
+                onClick={() => setOpen(false)}
+              >
+                Continuar
+              </Link>
+            </div>
           )}
         </div>
       </dialog>
@@ -121,7 +165,13 @@ export function CartDrawer({ cart }: { cart: CartSnapshot }) {
   );
 }
 
-function CartLine({ line }: { line: CartLineSnapshot }) {
+function CartLine({
+  line,
+  onQuantity,
+}: {
+  line: CartLineSnapshot;
+  onQuantity: (productId: string, quantity: number) => void;
+}) {
   const [quantity, setQuantity] = useState(line.quantity);
   const [error, setError] = useState<string | null>(null);
   const [removed, setRemoved] = useState(false);
@@ -145,13 +195,13 @@ function CartLine({ line }: { line: CartLineSnapshot }) {
   }, []);
 
   useEffect(() => {
-    if (flight.current || timer.current) return;
-    if (line.quantity !== acked.current && desired.current !== line.quantity) return;
+    if (flight.current || timer.current || desired.current !== acked.current) return;
     setQuantity(line.quantity);
     desired.current = line.quantity;
     acked.current = line.quantity;
-    setRemoved(false);
-  }, [line.productId, line.quantity]);
+    setRemoved(line.quantity === 0);
+    onQuantity(line.productId, line.quantity);
+  }, [line.productId, line.quantity, onQuantity]);
 
   function schedule(next: number, immediate = false) {
     const clamped = line.limit == null ? Math.max(0, next) : Math.min(Math.max(0, next), line.limit);
@@ -159,6 +209,7 @@ function CartLine({ line }: { line: CartLineSnapshot }) {
     desired.current = clamped;
     setError(null);
     if (clamped === 0) setRemoved(true);
+    onQuantity(line.productId, clamped);
     if (timer.current) clearTimeout(timer.current);
     const run = () => {
       timer.current = null;
@@ -187,6 +238,7 @@ function CartLine({ line }: { line: CartLineSnapshot }) {
           setRemoved(false);
           setQuantity(acked.current);
           desired.current = acked.current;
+          onQuantity(line.productId, acked.current);
           return;
         }
         acked.current = value;
