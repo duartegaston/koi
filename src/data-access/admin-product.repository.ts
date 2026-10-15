@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, eq, gte, inArray, isNull, lte } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, lte } from "drizzle-orm";
 import { schema } from "@/db";
 import { executor, firstRow, type DbExecutor } from "./executor";
 
@@ -75,7 +75,7 @@ export async function listStockProducts(db?: DbExecutor) {
     })
     .from(products)
     .where(isNull(products.deletedAt))
-    .orderBy(asc(products.stock), asc(products.name));
+    .orderBy(desc(products.stock), asc(products.name));
 }
 
 export async function listLowStockProducts(threshold: number, limit: number, db?: DbExecutor) {

@@ -1,12 +1,12 @@
 import "server-only";
 
-import { and, desc, eq, ilike, inArray, lt, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, lt, or, sql } from "drizzle-orm";
 import { schema } from "@/db";
 import type { FulfillmentMethod, OrderStatus, PaymentMethod } from "./order.repository";
 import { executor, type DbExecutor } from "./executor";
 import type { PaymentStatus } from "./payment.repository";
 
-const { orders, payments } = schema;
+const { orderItems, orders, payments, products } = schema;
 
 export type AdminOrderListItem = {
   id: string;
@@ -113,6 +113,27 @@ export async function getDashboardNumbers(range: { fromDate: string; toDate: str
   );
 }
 
+export async function listBestSellingProducts(db?: DbExecutor) {
+  const rows = await executor(db)
+    .select({
+      id: products.id,
+      name: products.name,
+      sold: sql<string>`sum(${orderItems.quantity})`,
+    })
+    .from(orderItems)
+    .innerJoin(orders, eq(orders.id, orderItems.orderId))
+    .innerJoin(products, eq(products.id, orderItems.productId))
+    .where(inArray(orders.status, ["paid", "fulfilled"]))
+    .groupBy(products.id, products.name)
+    .orderBy(sql`sum(${orderItems.quantity}) desc`, asc(products.name));
+
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    sold: asSoldCount(row.sold),
+  }));
+}
+
 export async function listRecentOrders(limit: number, db?: DbExecutor) {
   const rows = await executor(db)
     .select({
@@ -132,6 +153,14 @@ export async function listRecentOrders(limit: number, db?: DbExecutor) {
     status: asOrderStatus(row.status),
     paymentMethod: asPaymentMethod(row.paymentMethod),
   }));
+}
+
+function asSoldCount(value: unknown): number {
+  const raw = typeof value === "number" ? String(value) : value;
+  if (typeof raw !== "string" || !/^\d+$/.test(raw)) throw new Error("Cantidad vendida inválida");
+  const sold = Number(raw);
+  if (!Number.isSafeInteger(sold)) throw new Error("Cantidad vendida inválida");
+  return sold;
 }
 
 function containsPattern(value: string): string {
