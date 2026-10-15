@@ -3,6 +3,18 @@ main = ".open-next/worker.js"
 compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
 
+# Cada request queda en Workers Observability. Sin query string: /api/direcciones
+# lleva la dirección tipeada en ?q=.
+[observability]
+enabled = true
+head_sampling_rate = 1
+redact_query_string = true
+
+[observability.logs]
+enabled = true
+invocation_logs = true
+head_sampling_rate = 1
+
 # OpenNext sirve los assets estáticos desde este binding.
 [assets]
 directory = ".open-next/assets"
