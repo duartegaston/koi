@@ -125,6 +125,44 @@ export const deliveriesPausedSchema = z.object({
   paused: z.enum(["true", "false"]),
 });
 
+const manualOrderLineSchema = z.object({
+  productId: z.uuid("Elegí un producto."),
+  quantity: z.coerce
+    .number()
+    .int("La cantidad tiene que ser un entero.")
+    .min(1, "La cantidad mínima es 1.")
+    .max(99, "La cantidad máxima es 99."),
+});
+
+export const manualOrderSchema = z
+  .object({
+    customerName: z.string().trim().min(2, "Ingresá el nombre.").max(120),
+    customerPhone: z
+      .string()
+      .trim()
+      .transform((value) => value.replace(/\D/g, ""))
+      .pipe(z.string().regex(/^[1-9]\d{7,14}$/, "Ingresá un teléfono válido, con código de área.")),
+    paymentMethod: z.enum(["transfer", "cash"], { message: "Elegí transferencia o efectivo." }),
+    delivered: z.boolean(),
+    lines: z
+      .array(manualOrderLineSchema)
+      .min(1, "Agregá al menos un producto.")
+      .max(20, "El pedido tiene demasiados productos."),
+  })
+  .superRefine((data, ctx) => {
+    const seen = new Set<string>();
+    data.lines.forEach((line, index) => {
+      if (seen.has(line.productId)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["lines", index, "productId"],
+          message: "Ese producto ya está en el pedido.",
+        });
+      }
+      seen.add(line.productId);
+    });
+  });
+
 function isCalendarDate(value: string): boolean {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (!match) return false;

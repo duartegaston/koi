@@ -103,7 +103,8 @@
   border-left: 1px solid var(--koi-line);
 }
 
-.cart-dialog:focus {
+.cart-dialog:focus,
+.menu-dialog:focus {
   outline: none;
 }
 

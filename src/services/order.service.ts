@@ -2,10 +2,21 @@ import "server-only";
 
 import { markOrderFulfilled } from "@/data-access/admin-order.repository";
 import { transaction, type DbTransaction } from "@/data-access/executor";
-import { approvePendingOrder, cancelPendingOrder, findOrderByPublicCode, type OrderRecord } from "@/data-access/order.repository";
-import { findPaymentByOrderId, setPaymentStatus } from "@/data-access/payment.repository";
-import { decrementStock } from "@/data-access/product.repository";
-import { fail, type ServiceResult } from "./result";
+import {
+  approvePendingOrder,
+  cancelPendingOrder,
+  findOrderByPublicCode,
+  insertOrder,
+  insertOrderItems,
+  type NewOrderItemInput,
+  type OrderRecord,
+  type PaymentMethod,
+} from "@/data-access/order.repository";
+import { findPaymentByOrderId, insertPayment, setPaymentStatus } from "@/data-access/payment.repository";
+import { decrementStock, lockProductsByIds } from "@/data-access/product.repository";
+import { madeToOrderUnits, orderQuantityLimit } from "@/lib/order-limits";
+import { fromCents, multiplyAmount, toCents } from "@/lib/money";
+import { fail, type ServiceFailure, type ServiceResult } from "./result";
 
 export type ApprovedOrder = {
   publicCode: string;
@@ -126,6 +137,96 @@ export async function fulfillOrder(publicCode: string): Promise<ServiceResult<{ 
   return { ok: true, value: { publicCode: fulfilled.publicCode } };
 }
 
+export type ManualPickupOrderInput = {
+  customerName: string;
+  customerPhone: string;
+  paymentMethod: Extract<PaymentMethod, "transfer" | "cash">;
+  delivered: boolean;
+  lines: Array<{ productId: string; quantity: number }>;
+};
+
+/**
+ * Registra un pedido de retiro ya cobrado y descuenta el stock.
+ * El precio sale del catálogo. Si piden más de lo que hay, el resto queda a pedido.
+ */
+export async function recordManualPickupOrder(
+  input: ManualPickupOrderInput,
+): Promise<ServiceResult<{ publicCode: string }>> {
+  try {
+    const publicCode = await transaction(async (tx) => {
+      const productIds = input.lines.map((line) => line.productId);
+      if (new Set(productIds).size !== productIds.length) {
+        throw new ApprovalRejected("duplicate_product", "Cada producto puede aparecer una sola vez.");
+      }
+      const products = await lockProductsByIds(productIds, tx);
+      const byId = new Map(products.map((product) => [product.id, product]));
+      const items: NewOrderItemInput[] = [];
+      let subtotalCents = 0;
+
+      for (const line of input.lines) {
+        const product = byId.get(line.productId);
+        if (!product || product.deletedAt) {
+          throw new ApprovalRejected("product_missing", "Uno de los productos ya no está en el catálogo.");
+        }
+        const limit = orderQuantityLimit(product.maxPerOrder);
+        if (line.quantity > limit) {
+          throw new ApprovalRejected("quantity_limit", `${product.name} admite hasta ${limit} por pedido.`);
+        }
+        const lineTotal = multiplyAmount(product.price, line.quantity);
+        subtotalCents += toCents(lineTotal);
+        items.push({
+          productId: product.id,
+          productName: product.name,
+          unitPrice: product.price,
+          quantity: line.quantity,
+          madeToOrderQuantity: madeToOrderUnits(line.quantity, product.stock),
+          lineTotal,
+        });
+      }
+
+      const subtotal = fromCents(subtotalCents);
+      for (const item of items) {
+        const updated = await decrementStock(item.productId, item.quantity, tx);
+        if (!updated) {
+          throw new ApprovalRejected("product_missing", `No encontramos ${item.productName} para descontar el stock.`);
+        }
+      }
+
+      const order = await insertOrder(
+        {
+          customerName: input.customerName,
+          customerPhone: input.customerPhone,
+          fulfillmentMethod: "pickup",
+          subtotal,
+          shippingCost: "0.00",
+          total: subtotal,
+          paymentMethod: input.paymentMethod,
+        },
+        tx,
+      );
+      await insertOrderItems(order.id, items, tx);
+      const paid = await approvePendingOrder(order.id, tx);
+      if (!paid) {
+        throw new ApprovalRejected("order_not_pending", "No se pudo marcar el pedido como pagado.");
+      }
+      if (input.delivered) {
+        const fulfilled = await markOrderFulfilled(order.id, tx);
+        if (!fulfilled) {
+          throw new ApprovalRejected("order_not_paid", "No se pudo marcar el pedido como entregado.");
+        }
+      }
+      await insertPayment(
+        { orderId: order.id, provider: input.paymentMethod, amount: subtotal, status: "approved" },
+        tx,
+      );
+      return paid.publicCode;
+    });
+    return { ok: true, value: { publicCode } };
+  } catch (error) {
+    return rejectionOrThrow(error);
+  }
+}
+
 export async function getOrderForAdmin(publicCode: string) {
   const order = await findOrderByPublicCode(publicCode.trim());
   if (!order) return null;
@@ -158,7 +259,7 @@ async function settlePendingOrder(order: OrderRecord, tx: DbTransaction): Promis
   return { publicCode: marked.publicCode, status: "paid" };
 }
 
-function rejectionOrThrow(error: unknown): ServiceResult<ApprovedOrder> {
+function rejectionOrThrow(error: unknown): ServiceFailure {
   if (error instanceof ApprovalRejected) return fail(error.code, error.message);
   throw error;
 }

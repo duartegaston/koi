@@ -65,6 +65,20 @@ export async function listAdminProducts(db?: DbExecutor): Promise<AdminProduct[]
   return withImages(rows, db);
 }
 
+export async function listManualOrderProducts(db?: DbExecutor) {
+  return executor(db)
+    .select({
+      id: products.id,
+      name: products.name,
+      price: products.price,
+      stock: products.stock,
+      isActive: products.isActive,
+    })
+    .from(products)
+    .where(isNull(products.deletedAt))
+    .orderBy(asc(products.name));
+}
+
 export async function listStockProducts(db?: DbExecutor) {
   return executor(db)
     .select({

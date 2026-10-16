@@ -35,6 +35,7 @@ export function MobileMenu({ categories, contactHref }: { categories: CategoryLi
       </button>
       <dialog
         ref={dialogRef}
+        tabIndex={-1}
         className="menu-dialog"
         aria-labelledby="menu-title"
         onClose={() => setOpen(false)}
@@ -47,7 +48,12 @@ export function MobileMenu({ categories, contactHref }: { categories: CategoryLi
             <p id="menu-title" className="font-label text-sm tracking-wide">
               Menú
             </p>
-            <button type="button" className="inline-flex h-11 w-11 items-center justify-center" aria-label="Cerrar menú" onClick={() => setOpen(false)}>
+            <button
+              type="button"
+              className="inline-flex h-11 w-11 items-center justify-center outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-primary"
+              aria-label="Cerrar menú"
+              onClick={() => setOpen(false)}
+            >
               <CloseIcon />
             </button>
           </div>

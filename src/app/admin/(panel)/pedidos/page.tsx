@@ -44,7 +44,14 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
       : null;
 
   return (
-    <AdminPage title="Pedidos">
+    <AdminPage
+      title="Pedidos"
+      action={
+        <Link href="/admin/pedidos/nuevo" className={buttonClass.secondary}>
+          Cargar pedido
+        </Link>
+      }
+    >
       <OrderFilters
         status={status}
         paymentMethod={paymentMethod}

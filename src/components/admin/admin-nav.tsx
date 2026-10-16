@@ -110,6 +110,7 @@ function AdminMenu({ pathname }: { pathname: string }) {
       </button>
       <dialog
         ref={dialogRef}
+        tabIndex={-1}
         className="menu-dialog"
         aria-labelledby="admin-menu-title"
         onClose={() => setOpen(false)}
@@ -124,7 +125,7 @@ function AdminMenu({ pathname }: { pathname: string }) {
             </p>
             <button
               type="button"
-              className="inline-flex h-11 w-11 items-center justify-center"
+              className="inline-flex h-11 w-11 items-center justify-center outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-primary"
               aria-label="Cerrar menú"
               onClick={() => setOpen(false)}
             >

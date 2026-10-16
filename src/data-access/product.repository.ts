@@ -139,23 +139,31 @@ export async function findProductBySlug(slug: string, db?: DbExecutor): Promise<
   return product ?? null;
 }
 
+const productStockColumns = {
+  id: products.id,
+  name: products.name,
+  price: products.price,
+  stock: products.stock,
+  maxPerOrder: products.maxPerOrder,
+  isActive: products.isActive,
+  deletedAt: products.deletedAt,
+};
+
 export async function listProductsByIds(ids: string[], db?: DbExecutor): Promise<ProductStock[]> {
   if (ids.length === 0) {
     return [];
   }
 
-  return executor(db)
-    .select({
-      id: products.id,
-      name: products.name,
-      price: products.price,
-      stock: products.stock,
-      maxPerOrder: products.maxPerOrder,
-      isActive: products.isActive,
-      deletedAt: products.deletedAt,
-    })
-    .from(products)
-    .where(inArray(products.id, ids));
+  return executor(db).select(productStockColumns).from(products).where(inArray(products.id, ids));
+}
+
+/** Bloquea las filas hasta el fin de la transacción para leer precio y stock juntos. */
+export async function lockProductsByIds(ids: string[], db: DbExecutor): Promise<ProductStock[]> {
+  if (ids.length === 0) {
+    return [];
+  }
+
+  return executor(db).select(productStockColumns).from(products).where(inArray(products.id, ids)).for("update");
 }
 
 /**
