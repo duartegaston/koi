@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
+  date,
   index,
   integer,
   numeric,
@@ -55,6 +56,8 @@ export const storeSettings = pgTable(
     originLongitude: numeric("origin_longitude", { precision: 9, scale: 6 }),
     /** Sube al cerrar sesión. Los tokens con una versión anterior dejan de valer. */
     adminSessionVersion: integer("admin_session_version").notNull().default(1),
+    /** Aviso en la tienda. El checkout de envío sigue abierto. */
+    deliveriesPaused: boolean("deliveries_paused").notNull().default(false),
     ...timestamps(),
   },
   (table) => [
@@ -351,6 +354,22 @@ export const payments = pgTable(
   ],
 );
 
+/** Compras al proveedor. El saldo del admin es lo cobrado en productos menos esto. */
+export const supplierPurchases = pgTable(
+  "supplier_purchases",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    amount: money("amount"),
+    note: varchar("note", { length: 160 }),
+    purchasedOn: date("purchased_on").notNull(),
+    ...timestamps(),
+  },
+  (table) => [
+    index("supplier_purchases_purchased_on_idx").on(table.purchasedOn.desc(), table.createdAt.desc()),
+    check("supplier_purchases_amount_check", sql`${table.amount} > 0 AND ${table.amount} <= 9999999.99`),
+  ],
+);
+
 export type ContactMessage = typeof contactMessages.$inferSelect;
 export type NewContactMessage = typeof contactMessages.$inferInsert;
 export type StoreSettings = typeof storeSettings.$inferSelect;
@@ -363,3 +382,4 @@ export type Order = typeof orders.$inferSelect;
 export type NewOrder = typeof orders.$inferInsert;
 export type OrderItem = typeof orderItems.$inferSelect;
 export type Payment = typeof payments.$inferSelect;
+export type SupplierPurchase = typeof supplierPurchases.$inferSelect;

@@ -92,4 +92,48 @@ export const categoryDeleteSchema = z.object({
   reassignTo: z.union([z.literal(""), z.uuid("Elegí una categoría.")]),
 });
 
+const purchaseAmount = z
+  .string()
+  .trim()
+  .regex(/^\d+(\.\d{1,2})?$/, "Ingresá un monto válido.")
+  .refine((value) => Number(value) > 0, "El monto tiene que ser mayor a 0.")
+  .refine((value) => Number(value) <= 9_999_999.99, "El monto es demasiado alto.");
+
+const purchaseNote = z
+  .string()
+  .trim()
+  .max(160, "La nota es demasiado larga.")
+  .transform((value) => (value.length === 0 ? null : value));
+
+const purchaseDate = z.string().trim().refine(isCalendarDate, "Elegí una fecha válida.");
+
+export const supplierPurchaseSchema = z.object({
+  amount: purchaseAmount,
+  note: purchaseNote,
+  purchasedOn: purchaseDate,
+});
+
+export const supplierPurchaseUpdateSchema = supplierPurchaseSchema.extend({
+  purchaseId: z.uuid(),
+});
+
+export const supplierPurchaseDeleteSchema = z.object({
+  purchaseId: z.uuid(),
+});
+
+export const deliveriesPausedSchema = z.object({
+  paused: z.enum(["true", "false"]),
+});
+
+function isCalendarDate(value: string): boolean {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (year < 2020 || year > 2100) return false;
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+}
+
 export type ProductFormInput = z.output<typeof productFormSchema>;

@@ -16,6 +16,7 @@ import { mercadoPagoOffered } from "@/lib/payment-options";
 import { mapLink } from "@/lib/geo";
 import { addAmounts, formatArs } from "@/lib/money";
 import { safeMapUrl, safeMercadoPagoUrl, safeWhatsAppUrl } from "@/lib/safe-url";
+import { deliveriesPausedNotice } from "@/lib/site";
 
 const idleCheckoutState: CheckoutState = { status: "idle" };
 
@@ -26,6 +27,7 @@ type StoreView = {
   transferAlias: string | null;
   deliveryConfigured: boolean;
   mercadoPagoConfigured: boolean;
+  deliveriesPaused: boolean;
 };
 
 export function CheckoutForm({
@@ -201,6 +203,11 @@ function CheckoutFields({
 
         <fieldset className="space-y-3">
           <legend className="font-label text-sm tracking-wide text-muted">Entrega</legend>
+          {store.deliveriesPaused ? (
+            <p role="status" className="border border-line bg-surface px-4 py-3 text-sm leading-relaxed">
+              {deliveriesPausedNotice}
+            </p>
+          ) : null}
           {canDeliver ? (
             <Radio
               name="fulfillmentMethod"

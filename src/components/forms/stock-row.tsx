@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { updateStockAction, type StockState } from "@/actions/admin-products";
 import { Button } from "@/components/ui/button";
 
@@ -10,14 +10,20 @@ const initialState: StockState = { status: "idle" };
 
 export function StockRow({ id, name, stock, isActive }: { id: string; name: string; stock: number; isActive: boolean }) {
   const [state, action, pending] = useActionState(updateStockAction, initialState);
-  const low = stock <= lowStockThreshold;
+  const current = state.status === "saved" ? state.stock : stock;
+  const [value, setValue] = useState(String(current));
+  const low = current <= lowStockThreshold;
+
+  useEffect(() => {
+    setValue(String(current));
+  }, [current]);
 
   return (
     <form action={action} className="flex flex-wrap items-center gap-3 border-b border-line py-4">
-      <div className="min-w-[12rem] flex-1">
-        <p className="font-medium">{name}</p>
+      <div className="min-w-0 flex-1">
+        <p className="font-medium break-words">{name}</p>
         {!isActive ? <p className="text-sm text-muted">Oculto</p> : null}
-        {low ? <p className="text-sm">{stock === 0 ? "Sin stock" : "Stock bajo"}</p> : null}
+        {low ? <p className="text-sm">{current === 0 ? "Sin stock" : "Stock bajo"}</p> : null}
       </div>
       <label>
         <span className="sr-only">Stock de {name}</span>
@@ -26,7 +32,8 @@ export function StockRow({ id, name, stock, isActive }: { id: string; name: stri
           type="number"
           min={0}
           required
-          defaultValue={stock}
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
           className="h-11 w-28 border border-line bg-background px-3 text-sm"
         />
       </label>

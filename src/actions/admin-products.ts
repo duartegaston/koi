@@ -13,7 +13,10 @@ export type ProductFormState =
   | { status: "saved" }
   | { status: "error"; message: string; fieldErrors?: Partial<Record<string, string[]>> };
 
-export type StockState = { status: "idle" } | { status: "error"; message: string } | { status: "saved" };
+export type StockState =
+  | { status: "idle" }
+  | { status: "error"; message: string }
+  | { status: "saved"; stock: number };
 
 export async function createProductAction(_prev: ProductFormState, formData: FormData): Promise<ProductFormState> {
   await requireAdmin();
@@ -92,7 +95,9 @@ export async function updateStockAction(_prev: StockState, formData: FormData): 
   if (!updated.ok) return { status: "error", message: updated.message };
 
   revalidateCatalog();
-  return { status: "saved" };
+  revalidatePath("/admin/stock");
+  revalidatePath("/admin");
+  return { status: "saved", stock: updated.value.stock };
 }
 
 function readProductFields(formData: FormData) {

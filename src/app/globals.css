@@ -62,6 +62,12 @@
     line-height: 1.6;
   }
 
+  input,
+  select,
+  textarea {
+    max-width: 100%;
+  }
+
   h1,
   h2,
   h3 {

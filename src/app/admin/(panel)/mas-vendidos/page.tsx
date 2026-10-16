@@ -17,7 +17,7 @@ export default async function BestSellersPage() {
         <ul className="divide-y divide-line border-y border-line">
           {products.map((product) => (
             <li key={product.id} className="flex items-baseline justify-between gap-4 py-3 text-sm">
-              <Link href={`/admin/productos/${product.id}`} className="underline underline-offset-4">
+              <Link href={`/admin/productos/${product.id}`} className="min-w-0 break-words underline underline-offset-4">
                 {product.name}
               </Link>
               <span className="tabular-nums">{product.sold}</span>

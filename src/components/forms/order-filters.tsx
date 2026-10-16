@@ -43,8 +43,8 @@ export function OrderFilters({
 
   return (
     <div className="grid gap-3">
-      <div className="grid gap-3 md:grid-cols-3">
-        <label className="space-y-1.5 text-sm">
+      <div className="grid min-w-0 gap-3 md:grid-cols-3">
+        <label className="min-w-0 space-y-1.5 text-sm">
           <span className="block font-medium">Estado</span>
           <select
             name="status"
@@ -66,7 +66,7 @@ export function OrderFilters({
             ))}
           </select>
         </label>
-        <label className="space-y-1.5 text-sm">
+        <label className="min-w-0 space-y-1.5 text-sm">
           <span className="block font-medium">Pago</span>
           <select
             name="paymentMethod"
@@ -88,7 +88,7 @@ export function OrderFilters({
             ))}
           </select>
         </label>
-        <label className="space-y-1.5 text-sm">
+        <label className="min-w-0 space-y-1.5 text-sm">
           <span className="block font-medium">Código</span>
           <input
             name="code"

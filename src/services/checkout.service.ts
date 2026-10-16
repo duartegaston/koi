@@ -16,6 +16,7 @@ import { getServerEnv } from "@/lib/env";
 import { mercadoPagoOffered } from "@/lib/payment-options";
 import { readStoreConfig } from "@/lib/store-config";
 import { orderWhatsAppText, whatsAppLink } from "@/lib/whatsapp/link";
+import { readDeliveriesPaused } from "./store-settings.service";
 import { toCartView } from "./cart.service";
 import { openMercadoPagoCheckout } from "./mercadopago.service";
 import { fail, type ServiceResult } from "./result";
@@ -197,6 +198,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<ServiceResult<
 
     const mapUrl = delivery ? mapLink(Number(delivery.latitude), Number(delivery.longitude)) : null;
     const enteredAddress = delivery ? (input.address ?? "").trim() : null;
+    const deliveriesPaused = input.fulfillmentMethod === "motorcycle" ? await readDeliveriesPaused() : false;
 
     const whatsAppUrl = whatsAppLink(
       getServerEnv().WHATSAPP_NUMBER,
@@ -219,6 +221,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<ServiceResult<
         paymentMethod: input.paymentMethod,
         transferAlias: store.transferAlias,
         pickupAddress: store.pickupAddress,
+        deliveriesPaused,
       }),
     );
 

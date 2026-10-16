@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getServerEnv } from "@/lib/env";
+import { deliveriesPausedNotice } from "@/lib/site";
 
 const TEXT_LIMIT = 3500;
 
@@ -41,6 +42,7 @@ export type OrderWhatsAppInput = {
   paymentMethod: "mercadopago" | "transfer" | "cash";
   transferAlias: string | null;
   pickupAddress: string | null;
+  deliveriesPaused: boolean;
 };
 
 export function orderWhatsAppText(order: OrderWhatsAppInput): string {
@@ -63,6 +65,7 @@ export function orderWhatsAppText(order: OrderWhatsAppInput): string {
     );
     if (order.mapUrl) lines.push(`Mapa: ${order.mapUrl}`);
     lines.push(`Costo de envío: $${order.shippingCost}`);
+    if (order.deliveriesPaused) lines.push("", deliveriesPausedNotice);
   } else {
     lines.push(`Retiro en el local${order.pickupAddress ? `: ${order.pickupAddress}` : "."}`);
   }

@@ -155,6 +155,15 @@ export async function listRecentOrders(limit: number, db?: DbExecutor) {
   }));
 }
 
+export async function sumRecoveredProductSubtotal(db?: DbExecutor): Promise<string> {
+  const [row] = await executor(db)
+    .select({
+      recovered: sql<string>`coalesce(sum(${orders.subtotal}) filter (where ${orders.status} in ('paid', 'fulfilled')), 0)`,
+    })
+    .from(orders);
+  return row?.recovered ?? "0";
+}
+
 function asSoldCount(value: unknown): number {
   const raw = typeof value === "number" ? String(value) : value;
   if (typeof raw !== "string" || !/^\d+$/.test(raw)) throw new Error("Cantidad vendida inválida");

@@ -35,7 +35,7 @@ export default async function ProductsPage() {
                     <span className="h-20 w-16 bg-surface" />
                   )}
                   <span className="min-w-0 flex-1">
-                    <span className="block font-medium">{product.name}</span>
+                    <span className="block font-medium break-words">{product.name}</span>
                     <span className="mt-1 block text-sm text-muted">
                       {product.categoryName}
                       {product.isActive ? "" : " · Oculto"}

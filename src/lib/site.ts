@@ -5,6 +5,11 @@ export const publishedSiteUrl = "https://koichocolates.com.ar";
 
 export const instagramUrl = "https://www.instagram.com/koi.chocolates/";
 
+export const storeEmail = "koi.chocolatess@gmail.com";
+
+export const deliveriesPausedNotice =
+  "En este momento no estamos haciendo envíos. Podés hacer el pedido igual y te confirmamos por WhatsApp cuándo lo enviamos.";
+
 export const defaultOgImage = "/brand/og.png";
 
 export const homeTitle = "Koi, chocolates Rapanui con envío o retiro en Posadas";
