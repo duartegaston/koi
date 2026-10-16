@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { clearCartCookie, readOpenCart } from "@/lib/cart-session";
+import { allowClient } from "@/lib/rate-limit";
 import { placeOrderSchema, quoteAddressSchema } from "@/lib/validations/checkout";
 import { placeOrder } from "@/services/checkout.service";
 import { quoteDelivery } from "@/services/shipping.service";
@@ -69,6 +70,14 @@ export async function submitCheckout(prev: CheckoutState, formData: FormData): P
       };
     }
 
+    if (!(await allowClient("deliveryQuote"))) {
+      return {
+        status: "error",
+        message: "No pudimos cotizar otra vez ahora. Esperá unos minutos.",
+        fieldErrors: { address: ["No pudimos cotizar otra vez ahora. Esperá unos minutos."] },
+      };
+    }
+
     const quote = await quoteDelivery(parsed.data.address);
     if (!quote.ok) {
       return {
@@ -109,6 +118,14 @@ export async function submitCheckout(prev: CheckoutState, formData: FormData): P
       status: "error",
       message: "Revisá los campos marcados.",
       fieldErrors: z.flattenError(parsed.error).fieldErrors,
+      quote: keptQuote(prev),
+    };
+  }
+
+  if (!(await allowClient("checkoutPlace"))) {
+    return {
+      status: "error",
+      message: "No pudimos tomar otro pedido ahora. Esperá unos minutos.",
       quote: keptQuote(prev),
     };
   }

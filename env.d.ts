@@ -2,8 +2,6 @@
 interface CloudflareEnv {
   APP_URL: string;
   DATABASE_URL: string;
-  RESEND_API_KEY: string;
-  EMAIL_FROM: string;
   WHATSAPP_NUMBER: string;
   STORE_PICKUP_ADDRESS?: string;
   STORE_TRANSFER_ALIAS?: string;

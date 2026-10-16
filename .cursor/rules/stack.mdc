@@ -15,4 +15,4 @@ Full-stack en este repo:
 
 Alias de imports: `@/*` → `src/*`.
 
-Antes de escribir código de Next.js, Drizzle, PostgreSQL, Resend o Cloudflare, seguí la rule de Context7.
+Antes de escribir código de Next.js, Drizzle, PostgreSQL o Cloudflare, seguí la rule de Context7.

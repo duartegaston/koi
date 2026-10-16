@@ -1,14 +1,12 @@
 ---
-description: Emails con Resend y pedidos de WhatsApp solo con link wa.me
-globs: src/lib/email/**/*.ts,src/lib/whatsapp/**/*.ts,src/actions/**/*.ts
+description: Pedidos y contacto por WhatsApp solo con link wa.me
+globs: src/lib/whatsapp/**/*.ts,src/actions/**/*.ts
 alwaysApply: false
 ---
 
-# Emails y WhatsApp
+# WhatsApp
 
-Emails con el SDK de Resend (`src/lib/email/resend.ts` y plantillas en `templates.ts`).
-
-WhatsApp es un link para que el cliente envíe el pedido. El número del local está en `WHATSAPP_NUMBER` (dígitos internacionales, sin `+`). Armá el link con `whatsAppLink` en `src/lib/whatsapp/link.ts`. No conectes Twilio ni la Cloud API de Meta, y no agregues webhooks.
+WhatsApp es un link para que el cliente envíe el pedido. El número del local está en `WHATSAPP_NUMBER` (dígitos internacionales, sin `+`). Armá el link con `whatsAppLink` en `src/lib/whatsapp/link.ts`. No conectes Twilio ni la Cloud API de Meta, no agregues webhooks y no mandes mail transaccional.
 
 ```ts
 const url = whatsAppLink(getServerEnv().WHATSAPP_NUMBER, contactWhatsAppText(contact));

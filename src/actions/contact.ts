@@ -2,9 +2,9 @@
 
 import { z } from "zod";
 import { insertContactMessage } from "@/data-access/contact.repository";
-import { sendEmail } from "@/lib/email/resend";
-import { contactConfirmationEmail } from "@/lib/email/templates";
+import { errorCode } from "@/lib/error-code";
 import { getServerEnv } from "@/lib/env";
+import { allowClient } from "@/lib/rate-limit";
 import { contactSchema, type ContactInput } from "@/lib/validations/contact";
 import { contactWhatsAppText, whatsAppLink } from "@/lib/whatsapp/link";
 
@@ -39,27 +39,22 @@ export async function submitContact(
     };
   }
 
-  const whatsAppUrl = whatsAppLink(
-    getServerEnv().WHATSAPP_NUMBER,
-    contactWhatsAppText(parsed.data),
-  );
+  if (!(await allowClient("contact"))) {
+    return {
+      status: "error",
+      message: "Recibimos muchos mensajes desde esta conexión. Esperá unos minutos.",
+      values: raw,
+    };
+  }
+
+  const whatsAppUrl = whatsAppLink(getServerEnv().WHATSAPP_NUMBER, contactWhatsAppText(parsed.data));
 
   let saved = false;
   try {
     await insertContactMessage(parsed.data);
     saved = true;
   } catch (error) {
-    console.error("Error guardando mensaje de contacto", error);
-  }
-
-  if (saved) {
-    const email = contactConfirmationEmail(parsed.data);
-    const result = await Promise.allSettled([sendEmail({ to: parsed.data.email, ...email })]);
-    for (const item of result) {
-      if (item.status === "rejected") {
-        console.error("Error enviando email de contacto", item.reason);
-      }
-    }
+    console.error("Error guardando mensaje de contacto", errorCode(error));
   }
 
   return {

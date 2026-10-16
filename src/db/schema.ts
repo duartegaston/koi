@@ -53,6 +53,8 @@ export const storeSettings = pgTable(
     transferAlias: varchar("transfer_alias", { length: 80 }),
     originLatitude: numeric("origin_latitude", { precision: 8, scale: 6 }),
     originLongitude: numeric("origin_longitude", { precision: 9, scale: 6 }),
+    /** Sube al cerrar sesión. Los tokens con una versión anterior dejan de valer. */
+    adminSessionVersion: integer("admin_session_version").notNull().default(1),
     ...timestamps(),
   },
   (table) => [
@@ -71,7 +73,19 @@ export const storeSettings = pgTable(
         AND ${table.originLongitude} BETWEEN -180 AND 180
       )`,
     ),
+    check("store_settings_admin_session_version_check", sql`${table.adminSessionVersion} >= 0`),
   ],
+);
+
+/** Contador por IP y acción. Una fila por cubo, actualizada en el mismo INSERT. */
+export const rateLimitBuckets = pgTable(
+  "rate_limit_buckets",
+  {
+    bucketKey: text("bucket_key").primaryKey(),
+    hits: integer("hits").notNull(),
+    resetAt: timestamp("reset_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [check("rate_limit_buckets_hits_check", sql`${table.hits} > 0`)],
 );
 
 /** Bandas de radio desde el local. Gana la de menor alcance que cubre la distancia. */

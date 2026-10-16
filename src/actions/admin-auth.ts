@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { allowClient } from "@/lib/rate-limit";
 import { adminLoginSchema } from "@/lib/validations/admin";
 import { signInAdmin, signOutAdmin } from "@/services/admin-auth.service";
 
@@ -15,6 +16,10 @@ export async function loginAdmin(_prev: LoginState, formData: FormData): Promise
   if (!parsed.success) {
     const fieldErrors = z.flattenError(parsed.error).fieldErrors;
     return { status: "error", message: "Revisá los datos.", fieldErrors };
+  }
+
+  if (!(await allowClient("adminLogin"))) {
+    return { status: "error", message: "Demasiados intentos. Esperá unos minutos y probá de nuevo." };
   }
 
   const result = await signInAdmin(parsed.data.username, parsed.data.password);

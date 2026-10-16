@@ -1,6 +1,7 @@
 import "server-only";
 
 import { cookies } from "next/headers";
+import { readAdminSessionVersion } from "@/data-access/admin-session.repository";
 import { getServerEnv } from "@/lib/env";
 
 const cookieName = "koi_admin";
@@ -31,7 +32,13 @@ export async function clearAdminSession(): Promise<void> {
 }
 
 async function signSessionToken(): Promise<string> {
-  const payload = bytesToBase64Url(new TextEncoder().encode(JSON.stringify({ exp: unixNow() + maxAgeSeconds })));
+  const version = await readAdminSessionVersion();
+  if (version === null) {
+    throw new Error("admin_session_version_missing");
+  }
+  const payload = bytesToBase64Url(
+    new TextEncoder().encode(JSON.stringify({ exp: unixNow() + maxAgeSeconds, v: version })),
+  );
   const signature = await sign(payload);
   return `${payload}.${signature}`;
 }
@@ -54,13 +61,22 @@ async function verifySessionToken(token: string): Promise<boolean> {
   } catch {
     return false;
   }
-  if (!isSessionPayload(parsed)) return false;
-  return parsed.exp > unixNow();
+  if (!isSessionPayload(parsed) || parsed.exp <= unixNow()) return false;
+
+  const version = await readAdminSessionVersion();
+  return version !== null && parsed.v === version;
 }
 
-function isSessionPayload(value: unknown): value is { exp: number } {
-  if (!value || typeof value !== "object" || !("exp" in value)) return false;
-  return typeof value.exp === "number" && Number.isFinite(value.exp);
+function isSessionPayload(value: unknown): value is { exp: number; v: number } {
+  if (!value || typeof value !== "object") return false;
+  const record = value as { exp?: unknown; v?: unknown };
+  return (
+    typeof record.exp === "number" &&
+    Number.isFinite(record.exp) &&
+    typeof record.v === "number" &&
+    Number.isInteger(record.v) &&
+    record.v >= 0
+  );
 }
 
 async function sign(payload: string): Promise<string> {

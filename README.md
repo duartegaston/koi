@@ -1,6 +1,6 @@
 # koi
 
-Next.js 15 (App Router) + TypeScript estricto + Tailwind CSS v4 + Drizzle ORM (PostgreSQL) + Resend + link de WhatsApp, desplegado en **Cloudflare Workers** con `@opennextjs/cloudflare`.
+Next.js 15 (App Router) + TypeScript estricto + Tailwind CSS v4 + Drizzle ORM (PostgreSQL) + link de WhatsApp, desplegado en **Cloudflare Workers** con `@opennextjs/cloudflare`.
 
 ## Estructura
 
@@ -23,7 +23,6 @@ Next.js 15 (App Router) + TypeScript estricto + Tailwind CSS v4 + Drizzle ORM (P
 │   │   ├── index.ts             # getDb(): Drizzle + postgres.js (PostgreSQL estándar)
 │   │   └── schema.ts            # Tablas, índices y tipos inferidos
 │   └── lib/
-│       ├── email/               # Cliente Resend + plantillas
 │       ├── validations/         # Esquemas Zod compartidos cliente/servidor
 │       ├── whatsapp/            # Link wa.me para que el cliente envíe el pedido
 │       ├── env.ts               # Variables de entorno validadas (Zod)
@@ -51,7 +50,6 @@ Next.js 15 (App Router) + TypeScript estricto + Tailwind CSS v4 + Drizzle ORM (P
 | --- | --- | --- |
 | ORM | Drizzle | Sin binario/engine. El driver `postgres` queda fuera del bundle (`serverExternalPackages`). |
 | Base de datos | PostgreSQL + `postgres` (postgres.js) | Cualquier Postgres vía `DATABASE_URL`. `prepare: false` para poolers en modo transaction. |
-| Email | Resend SDK | Basado en `fetch`. |
 | WhatsApp | Link `wa.me` | El cliente abre WhatsApp con el pedido escrito y lo envía al número de `WHATSAPP_NUMBER`. Sin API de Meta ni Twilio. |
 
 ## Puesta en marcha
@@ -79,5 +77,5 @@ npm run dev
 ## Despliegue en Cloudflare
 
 1. El Worker ya está descrito en `wrangler.toml` (`nodejs_compat` y `global_fetch_strictly_public`).
-2. Cargar los secretos: `wrangler secret put DATABASE_URL` (idem `RESEND_API_KEY`, `EMAIL_FROM`, `WHATSAPP_NUMBER`).
+2. Cargar los secretos: `wrangler secret put DATABASE_URL` (idem `WHATSAPP_NUMBER`).
 3. `npm run deploy`.

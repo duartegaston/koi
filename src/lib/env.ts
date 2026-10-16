@@ -26,8 +26,6 @@ const serverEnvSchema = z
   .object({
     APP_URL: z.url(),
     DATABASE_URL: z.url(),
-    RESEND_API_KEY: z.string().min(1),
-    EMAIL_FROM: z.string().min(1),
     WHATSAPP_NUMBER: z
       .string()
       .trim()

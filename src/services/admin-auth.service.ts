@@ -1,6 +1,7 @@
 import "server-only";
 
 import { redirect } from "next/navigation";
+import { bumpAdminSessionVersion } from "@/data-access/admin-session.repository";
 import { adminPasswordMatches } from "@/lib/admin/password";
 import { clearAdminSession, readAdminSession, writeAdminSession } from "@/lib/admin/session";
 import { fail, type ServiceResult } from "./result";
@@ -22,5 +23,8 @@ export async function signInAdmin(username: string, password: string): Promise<S
 }
 
 export async function signOutAdmin(): Promise<void> {
+  if (await readAdminSession()) {
+    await bumpAdminSessionVersion();
+  }
   await clearAdminSession();
 }

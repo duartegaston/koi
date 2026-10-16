@@ -43,6 +43,13 @@
       "when": 1791841858709,
       "tag": "0005_motorcycle_transfer",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792155929653,
+      "tag": "0006_rate_limit_and_admin_session",
+      "breakpoints": true
     }
   ]
 }
