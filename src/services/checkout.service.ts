@@ -4,6 +4,7 @@ import { findCart, listCartLines, setCartStatus } from "@/data-access/cart.repos
 import { isUniqueViolation, transaction } from "@/data-access/executor";
 import {
   cancelPendingOrder,
+  findOrderByPublicCode,
   insertOrder,
   insertOrderItems,
   type FulfillmentMethod,
@@ -34,6 +35,11 @@ export type PlaceOrderInput = {
 
 export type PlacedOrder = {
   publicCode: string;
+  checkoutUrl: string | null;
+};
+
+export type CheckoutReceipt = {
+  publicCode: string;
   subtotal: string;
   shippingCost: string;
   total: string;
@@ -44,7 +50,6 @@ export type PlacedOrder = {
   geocodedAddress: string | null;
   mapUrl: string | null;
   whatsAppUrl: string;
-  checkoutUrl: string | null;
 };
 
 export async function placeOrder(input: PlaceOrderInput): Promise<ServiceResult<PlacedOrder>> {
@@ -196,49 +201,10 @@ export async function placeOrder(input: PlaceOrderInput): Promise<ServiceResult<
       checkoutUrl = preference.value.checkoutUrl;
     }
 
-    const mapUrl = delivery ? mapLink(Number(delivery.latitude), Number(delivery.longitude)) : null;
-    const enteredAddress = delivery ? (input.address ?? "").trim() : null;
-    const deliveriesPaused = input.fulfillmentMethod === "motorcycle" ? await readDeliveriesPaused() : false;
-
-    const whatsAppUrl = whatsAppLink(
-      getServerEnv().WHATSAPP_NUMBER,
-      orderWhatsAppText({
-        publicCode: placed.order.publicCode,
-        customerName: customer.value.name,
-        customerPhone: customer.value.phone,
-        lines: placed.lines.map((line) => ({
-          name: line.name,
-          quantity: line.quantity,
-          lineTotal: line.lineTotal,
-          madeToOrder: line.madeToOrder,
-        })),
-        fulfillmentMethod: input.fulfillmentMethod,
-        addressLine: enteredAddress,
-        geocodedAddress: delivery?.formattedAddress ?? null,
-        mapUrl,
-        shippingCost: placed.shippingCost,
-        total: placed.total,
-        paymentMethod: input.paymentMethod,
-        transferAlias: store.transferAlias,
-        pickupAddress: store.pickupAddress,
-        deliveriesPaused,
-      }),
-    );
-
     return {
       ok: true,
       value: {
         publicCode: placed.order.publicCode,
-        subtotal: placed.subtotal,
-        shippingCost: placed.shippingCost,
-        total: placed.total,
-        fulfillmentMethod: input.fulfillmentMethod,
-        paymentMethod: input.paymentMethod,
-        transferAlias: input.paymentMethod === "transfer" ? store.transferAlias : null,
-        addressLine: enteredAddress,
-        geocodedAddress: delivery?.formattedAddress ?? null,
-        mapUrl,
-        whatsAppUrl,
         checkoutUrl,
       },
     };
@@ -260,6 +226,57 @@ class CheckoutRejected extends Error {
   ) {
     super(message);
   }
+}
+
+export async function readCheckoutReceipt(publicCode: string): Promise<CheckoutReceipt | null> {
+  const order = await findOrderByPublicCode(publicCode);
+  if (!order || order.status === "cancelled") return null;
+
+  const store = readStoreConfig();
+  const latitude = order.latitude === null ? null : Number(order.latitude);
+  const longitude = order.longitude === null ? null : Number(order.longitude);
+  const mapUrl =
+    latitude !== null && longitude !== null && order.fulfillmentMethod === "motorcycle"
+      ? mapLink(latitude, longitude)
+      : null;
+  const deliveriesPaused = order.fulfillmentMethod === "motorcycle" ? await readDeliveriesPaused() : false;
+
+  return {
+    publicCode: order.publicCode,
+    subtotal: order.subtotal,
+    shippingCost: order.shippingCost,
+    total: order.total,
+    fulfillmentMethod: order.fulfillmentMethod,
+    paymentMethod: order.paymentMethod,
+    transferAlias: order.paymentMethod === "transfer" ? store.transferAlias : null,
+    addressLine: order.addressLine,
+    geocodedAddress: order.geocodedAddress,
+    mapUrl,
+    whatsAppUrl: whatsAppLink(
+      getServerEnv().WHATSAPP_NUMBER,
+      orderWhatsAppText({
+        publicCode: order.publicCode,
+        customerName: order.customerName,
+        customerPhone: order.customerPhone,
+        lines: order.items.map((item) => ({
+          name: item.productName,
+          quantity: item.quantity,
+          lineTotal: item.lineTotal,
+          madeToOrder: item.madeToOrderQuantity,
+        })),
+        fulfillmentMethod: order.fulfillmentMethod,
+        addressLine: order.addressLine,
+        geocodedAddress: order.geocodedAddress,
+        mapUrl,
+        shippingCost: order.shippingCost,
+        total: order.total,
+        paymentMethod: order.paymentMethod,
+        transferAlias: store.transferAlias,
+        pickupAddress: store.pickupAddress,
+        deliveriesPaused,
+      }),
+    ),
+  };
 }
 
 function readCustomer(input: PlaceOrderInput): ServiceResult<{ name: string; phone: string; email?: string }> {

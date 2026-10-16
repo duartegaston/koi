@@ -1,9 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { clearCartCookie, readOpenCart } from "@/lib/cart-session";
+import { writeOrderGrant } from "@/lib/order-grant";
 import { allowClient } from "@/lib/rate-limit";
+import { safeMercadoPagoUrl } from "@/lib/safe-url";
 import { placeOrderSchema, quoteAddressSchema } from "@/lib/validations/checkout";
 import { placeOrder } from "@/services/checkout.service";
 import { quoteDelivery } from "@/services/shipping.service";
@@ -18,21 +21,6 @@ export type DeliveryQuoteView = {
   longitude: string;
 };
 
-export type PlacedOrderView = {
-  publicCode: string;
-  subtotal: string;
-  shippingCost: string;
-  total: string;
-  fulfillmentMethod: "motorcycle" | "pickup";
-  paymentMethod: "mercadopago" | "transfer" | "cash";
-  transferAlias: string | null;
-  addressLine: string | null;
-  geocodedAddress: string | null;
-  mapUrl: string | null;
-  whatsAppUrl: string;
-  checkoutUrl: string | null;
-};
-
 export type CheckoutFieldErrors = Partial<{
   customerName: string[];
   customerPhone: string[];
@@ -45,8 +33,7 @@ export type CheckoutFieldErrors = Partial<{
 export type CheckoutState =
   | { status: "idle" }
   | { status: "quoted"; quote: DeliveryQuoteView }
-  | { status: "error"; message: string; fieldErrors?: CheckoutFieldErrors; quote?: DeliveryQuoteView }
-  | { status: "success"; order: PlacedOrderView };
+  | { status: "error"; message: string; fieldErrors?: CheckoutFieldErrors; quote?: DeliveryQuoteView };
 
 function keptQuote(prev: CheckoutState): DeliveryQuoteView | undefined {
   if (prev.status === "quoted") return prev.quote;
@@ -152,7 +139,9 @@ export async function submitCheckout(prev: CheckoutState, formData: FormData): P
     return { status: "error", message: placed.message, quote: keptQuote(prev) };
   }
 
+  const checkoutUrl = placed.value.checkoutUrl ? safeMercadoPagoUrl(placed.value.checkoutUrl) : null;
   await clearCartCookie();
+  await writeOrderGrant(placed.value.publicCode, checkoutUrl);
   revalidatePath("/", "layout");
-  return { status: "success", order: placed.value };
+  redirect(`/checkout/pedido/${placed.value.publicCode}`);
 }

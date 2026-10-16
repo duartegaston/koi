@@ -6,16 +6,15 @@ import { useActionState, useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { submitCheckout, type CheckoutState, type DeliveryQuoteView } from "@/actions/checkout";
 import { AddressSuggest } from "@/components/forms/address-suggest";
-import { cartEmptiedByCustomer, publishCart, useLiveCart } from "@/components/layout/cart-store";
+import { cartEmptiedByCustomer, useLiveCart } from "@/components/layout/cart-store";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { InputField } from "@/components/ui/field";
-import { emptyCart, type CartSnapshot } from "@/lib/cart-types";
+import { type CartSnapshot } from "@/lib/cart-types";
 import { availabilityNote } from "@/lib/order-limits";
 import { mercadoPagoOffered } from "@/lib/payment-options";
 import { mapLink } from "@/lib/geo";
 import { addAmounts, formatArs } from "@/lib/money";
-import { safeMapUrl, safeMercadoPagoUrl, safeWhatsAppUrl } from "@/lib/safe-url";
 import { deliveriesPausedNotice } from "@/lib/site";
 
 const idleCheckoutState: CheckoutState = { status: "idle" };
@@ -43,21 +42,12 @@ export function CheckoutForm({
   const router = useRouter();
   const [state, action] = useActionState(submitCheckout, idleCheckoutState);
   const cartIsEmpty = liveCart.itemCount === 0;
-  const leaving = state.status !== "success" && cartIsEmpty && cartEmptiedByCustomer();
-
-  useEffect(() => {
-    if (state.status !== "success") return;
-    publishCart(emptyCart, "server");
-  }, [state.status]);
+  const leaving = cartIsEmpty && cartEmptiedByCustomer();
 
   useEffect(() => {
     if (!leaving) return;
     router.replace("/");
   }, [leaving, router]);
-
-  if (state.status === "success") {
-    return <OrderSuccess order={state.order} />;
-  }
 
   if (storeError || !store) {
     return (
@@ -91,7 +81,7 @@ function CheckoutFields({
 }: {
   cart: CartSnapshot;
   store: StoreView;
-  state: Exclude<CheckoutState, { status: "success" }>;
+  state: CheckoutState;
   action: (payload: FormData) => void;
 }) {
   const canPickup = Boolean(store.pickupAddress);
@@ -373,90 +363,6 @@ function QuoteSummary({ quote }: { quote: DeliveryQuoteView }) {
         {distance ? ` · ${distance} km` : ""} · {formatArs(quote.price)}
       </p>
     </div>
-  );
-}
-
-function OrderSuccess({ order }: { order: Extract<CheckoutState, { status: "success" }>["order"] }) {
-  const whatsAppUrl = safeWhatsAppUrl(order.whatsAppUrl);
-  const checkoutUrl = order.checkoutUrl ? safeMercadoPagoUrl(order.checkoutUrl) : null;
-  const payingOnline = order.paymentMethod === "mercadopago";
-  const payingCash = order.paymentMethod === "cash";
-  const mapUrl = order.mapUrl ? safeMapUrl(order.mapUrl) : null;
-
-  useEffect(() => {
-    if (checkoutUrl) window.location.assign(checkoutUrl);
-  }, [checkoutUrl]);
-
-  return (
-    <section className="mx-auto max-w-xl px-6 py-16">
-      <p className="font-label text-sm tracking-wide text-muted">{payingOnline ? "Pedido anotado" : "Pedido confirmado"}</p>
-      <h1 className="mt-3 text-4xl leading-none md:text-5xl">{order.publicCode}</h1>
-      <p className="mt-4 text-sm leading-relaxed text-muted">
-        {order.fulfillmentMethod === "pickup"
-          ? "El pedido queda para retirar en el local."
-          : "El pedido incluye envío."}{" "}
-        {payingOnline
-          ? "Te estamos llevando a Mercado Pago. Si no abre, usá el botón de abajo."
-          : payingCash
-            ? "Pagás en efectivo al retirar. Enviá el pedido por WhatsApp para que el local lo anote."
-            : "Enviá el comprobante de la transferencia por WhatsApp."}
-      </p>
-      {order.fulfillmentMethod === "motorcycle" && order.addressLine ? (
-        <div className="mt-4 border border-line px-4 py-3 text-sm">
-          <p>Escribiste: {order.addressLine}</p>
-          {order.geocodedAddress ? <p className="mt-2">La ubicamos en: {order.geocodedAddress}</p> : null}
-          {mapUrl ? (
-            <a href={mapUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex underline underline-offset-4">
-              Ver en el mapa
-            </a>
-          ) : null}
-        </div>
-      ) : null}
-      {order.paymentMethod === "transfer" && order.transferAlias ? (
-        <p className="mt-4 border border-line px-4 py-3 text-sm">Alias: {order.transferAlias}</p>
-      ) : null}
-      <dl className="mt-8 space-y-2 text-sm">
-        <div className="flex justify-between">
-          <dt>Subtotal</dt>
-          <dd>{formatArs(order.subtotal)}</dd>
-        </div>
-        <div className="flex justify-between">
-          <dt>Envío</dt>
-          <dd>{formatArs(order.shippingCost)}</dd>
-        </div>
-        <div className="flex justify-between border-t border-line pt-3 text-base">
-          <dt>Total</dt>
-          <dd>{formatArs(order.total)}</dd>
-        </div>
-      </dl>
-      {checkoutUrl ? (
-        <a
-          href={checkoutUrl}
-          className="mt-8 inline-flex h-11 w-full items-center justify-center bg-foreground px-4 text-sm font-medium text-background hover:bg-foreground/80"
-        >
-          Pagar con Mercado Pago
-        </a>
-      ) : null}
-      {whatsAppUrl ? (
-        <a
-          href={whatsAppUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={
-            checkoutUrl
-              ? "mt-3 inline-flex h-11 w-full items-center justify-center border border-foreground px-4 text-sm font-medium"
-              : "mt-8 inline-flex h-11 w-full items-center justify-center bg-foreground px-4 text-sm font-medium text-background hover:bg-foreground/80"
-          }
-        >
-          {checkoutUrl ? "Avisar al local por WhatsApp" : "Enviar pedido por WhatsApp"}
-        </a>
-      ) : null}
-      <p className="mt-6">
-        <Link href="/" className="text-sm underline underline-offset-4">
-          Volver a la tienda
-        </Link>
-      </p>
-    </section>
   );
 }
 
