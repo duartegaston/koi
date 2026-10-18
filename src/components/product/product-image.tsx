@@ -1,12 +1,15 @@
 import { safeImageUrl } from "@/lib/safe-url";
+import { cn } from "@/lib/utils";
 
 type ProductImageProps = {
   src: string | null;
   alt: string;
   priority?: boolean;
+  /** Foto más apagada cuando el producto no tiene stock. */
+  muted?: boolean;
 };
 
-export function ProductImage({ src, alt, priority = false }: ProductImageProps) {
+export function ProductImage({ src, alt, priority = false, muted = false }: ProductImageProps) {
   const safe = src ? safeImageUrl(src) : null;
   if (!safe) return null;
 
@@ -18,7 +21,10 @@ export function ProductImage({ src, alt, priority = false }: ProductImageProps) 
       alt={alt}
       loading={priority ? "eager" : "lazy"}
       decoding="async"
-      className="absolute inset-0 h-full w-full object-cover motion-safe:transition motion-safe:duration-500 motion-safe:group-hover:scale-[1.03]"
+      className={cn(
+        "absolute inset-0 h-full w-full object-cover motion-safe:transition motion-safe:duration-500 motion-safe:group-hover:scale-[1.03]",
+        muted && "saturate-[.3]",
+      )}
     />
   );
 }

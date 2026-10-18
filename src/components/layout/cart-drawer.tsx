@@ -307,7 +307,7 @@ function CartLine({
   return (
     <div className="grid grid-cols-[4.5rem_1fr] gap-4 px-5 py-4">
       <Link href={`/producto/${line.slug}`} className="relative block aspect-[3/4] bg-surface">
-        <ProductImage src={line.imageUrl} alt="" />
+        <ProductImage src={line.imageUrl} alt="" muted={line.stock <= 0} />
       </Link>
       <div className="flex min-w-0 flex-col">
         <div className="flex items-start justify-between gap-3">

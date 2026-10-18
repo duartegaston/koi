@@ -6,14 +6,22 @@ import { cn } from "@/lib/utils";
 
 type GalleryImage = { url: string; alt: string | null };
 
-export function ProductGallery({ images, name }: { images: GalleryImage[]; name: string }) {
+export function ProductGallery({
+  images,
+  name,
+  muted = false,
+}: {
+  images: GalleryImage[];
+  name: string;
+  muted?: boolean;
+}) {
   const [active, setActive] = useState(0);
   const current = images[active] ?? images[0];
 
   return (
     <div className="space-y-3">
       <div className="relative aspect-[3/4] overflow-hidden bg-surface">
-        <ProductImage src={current?.url ?? null} alt={current?.alt ?? name} priority />
+        <ProductImage src={current?.url ?? null} alt={current?.alt ?? name} priority muted={muted} />
       </div>
       {images.length > 1 ? (
         <ul className="flex gap-2 overflow-x-auto">
@@ -29,7 +37,7 @@ export function ProductGallery({ images, name }: { images: GalleryImage[]; name:
                   index === active && "outline-2 outline-offset-2 outline-foreground",
                 )}
               >
-                <ProductImage src={image.url} alt="" />
+                <ProductImage src={image.url} alt="" muted={muted} />
               </button>
             </li>
           ))}

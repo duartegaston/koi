@@ -45,7 +45,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
           { name: product.name, path: `/producto/${product.slug}` },
         ])}
       />
-      <ProductGallery images={product.images} name={product.name} />
+      <ProductGallery images={product.images} name={product.name} muted={product.stock <= 0} />
       <div>
         <Link href={`/categoria/${product.categorySlug}`} className="font-label text-sm tracking-wide text-muted underline-offset-4 hover:underline">
           {product.categoryName}
