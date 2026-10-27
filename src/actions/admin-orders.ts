@@ -28,7 +28,6 @@ const intents = {
   approve: approveTransferOrder,
   approve_cash: approveCashOrder,
   confirm: confirmMercadoPagoOrder,
-  cancel: cancelOrder,
   fulfill: fulfillOrder,
 } as const;
 
@@ -39,17 +38,38 @@ export async function updateOrderAction(_prev: OrderActionState, formData: FormD
   if (!z.string().regex(/^KOI-[A-F0-9]{8}$/).safeParse(publicCode).success) {
     return { status: "error", message: "No encontramos ese pedido." };
   }
-  if (intent !== "approve" && intent !== "approve_cash" && intent !== "confirm" && intent !== "cancel" && intent !== "fulfill") {
+
+  if (intent === "cancel") {
+    const result = await cancelOrder(publicCode);
+    if (!result.ok) return { status: "error", message: result.message };
+    revalidateOrderViews(publicCode);
+    return {
+      status: "success",
+      message: result.value.restoredStock
+        ? "Pedido cancelado. Se restauró el stock descontado."
+        : "Pedido cancelado.",
+    };
+  }
+
+  if (intent !== "approve" && intent !== "approve_cash" && intent !== "confirm" && intent !== "fulfill") {
     return { status: "error", message: "Esa acción no está disponible." };
   }
 
   const result = await intents[intent](publicCode);
   if (!result.ok) return { status: "error", message: result.message };
 
+  revalidateOrderViews(publicCode);
+  return { status: "success", message: successMessage(intent) };
+}
+
+function revalidateOrderViews(publicCode: string) {
   revalidatePath("/admin");
   revalidatePath("/admin/pedidos");
+  revalidatePath(`/admin/pedidos/${publicCode}`);
+  revalidatePath("/admin/stock");
+  revalidatePath("/admin/inversion");
+  revalidatePath("/admin/mas-vendidos");
   revalidatePath("/", "layout");
-  return { status: "success", message: successMessage(intent) };
 }
 
 export async function createManualOrderAction(
@@ -107,6 +127,5 @@ function successMessage(intent: keyof typeof intents): string {
   if (intent === "approve" || intent === "approve_cash" || intent === "confirm") {
     return "Pedido aprobado. Se descontó el stock disponible. Lo que falta queda a pedido.";
   }
-  if (intent === "cancel") return "Pedido cancelado.";
   return "Pedido marcado como entregado.";
 }

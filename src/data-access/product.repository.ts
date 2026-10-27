@@ -180,6 +180,17 @@ export async function decrementStock(productId: string, quantity: number, db?: D
   return row ?? null;
 }
 
+/** Suma stock al cancelar un pedido que ya lo había descontado. `null` si el producto no existe. */
+export async function incrementStock(productId: string, quantity: number, db?: DbExecutor) {
+  const [row] = await executor(db)
+    .update(products)
+    .set({ stock: sql`${products.stock} + ${quantity}`, updatedAt: new Date() })
+    .where(eq(products.id, productId))
+    .returning({ id: products.id, stock: products.stock });
+
+  return row ?? null;
+}
+
 function visibleProduct(filter: ProductListFilter = {}) {
   return and(
     eq(products.isActive, true),

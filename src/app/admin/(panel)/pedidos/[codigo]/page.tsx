@@ -120,7 +120,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
         canApproveTransfer={pending && order.paymentMethod === "transfer"}
         canApproveCash={pending && order.paymentMethod === "cash"}
         canConfirmPayment={pending && order.paymentMethod === "mercadopago" && payment?.status === "approved"}
-        canCancel={pending}
+        canCancel={order.status === "pending_payment" || order.status === "paid" || order.status === "fulfilled"}
         canFulfill={order.status === "paid"}
       />
     </AdminPage>

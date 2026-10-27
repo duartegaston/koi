@@ -165,10 +165,20 @@ export async function approvePendingOrder(orderId: string, db?: DbExecutor) {
 
 /** Suelta el carrito para poder reintentar si Mercado Pago no abrió el cobro. */
 export async function cancelPendingOrder(orderId: string, db?: DbExecutor) {
+  return cancelOrderFromStatus(orderId, "pending_payment", db);
+}
+
+/**
+ * Cancela un pedido que sigue en `fromStatus`. `null` si otro proceso ya lo movió.
+ * Libera `cart_id` para no bloquear el carrito.
+ */
+export async function cancelOrderFromStatus(orderId: string, fromStatus: OrderStatus, db?: DbExecutor) {
+  if (fromStatus === "cancelled") return null;
+
   const [row] = await executor(db)
     .update(orders)
     .set({ status: "cancelled", cartId: null, updatedAt: new Date() })
-    .where(and(eq(orders.id, orderId), eq(orders.status, "pending_payment")))
+    .where(and(eq(orders.id, orderId), eq(orders.status, fromStatus)))
     .returning({ id: orders.id, publicCode: orders.publicCode, status: orders.status });
 
   return row ? { ...row, status: asOrderStatus(row.status) } : null;

@@ -4,7 +4,7 @@ import { markOrderFulfilled } from "@/data-access/admin-order.repository";
 import { transaction, type DbTransaction } from "@/data-access/executor";
 import {
   approvePendingOrder,
-  cancelPendingOrder,
+  cancelOrderFromStatus,
   findOrderByPublicCode,
   insertOrder,
   insertOrderItems,
@@ -13,7 +13,7 @@ import {
   type PaymentMethod,
 } from "@/data-access/order.repository";
 import { findPaymentByOrderId, insertPayment, setPaymentStatus } from "@/data-access/payment.repository";
-import { decrementStock, lockProductsByIds } from "@/data-access/product.repository";
+import { decrementStock, incrementStock, lockProductsByIds } from "@/data-access/product.repository";
 import { madeToOrderUnits, orderQuantityLimit } from "@/lib/order-limits";
 import { fromCents, multiplyAmount, toCents } from "@/lib/money";
 import { fail, type ServiceFailure, type ServiceResult } from "./result";
@@ -116,15 +116,58 @@ export async function confirmMercadoPagoOrder(publicCode: string): Promise<Servi
   }
 }
 
-export async function cancelOrder(publicCode: string): Promise<ServiceResult<{ publicCode: string }>> {
-  const order = await loadPendingOrder(publicCode);
-  if (!order.ok) return order;
-
-  const cancelled = await cancelPendingOrder(order.value.id);
-  if (!cancelled) {
-    return fail("order_not_pending", "Ese pedido ya no está pendiente de aprobación.");
+/**
+ * Cancela un pedido pendiente, pagado o entregado.
+ * Si el stock ya se había descontado (`paid` / `fulfilled`), lo restaura.
+ */
+export async function cancelOrder(
+  publicCode: string,
+): Promise<ServiceResult<{ publicCode: string; restoredStock: boolean }>> {
+  const order = await findOrderByPublicCode(publicCode.trim());
+  if (!order) return fail("order_not_found", "No encontramos ese pedido.");
+  if (order.status === "cancelled") {
+    return fail("already_cancelled", "Ese pedido ya está cancelado.");
   }
-  return { ok: true, value: { publicCode: cancelled.publicCode } };
+  if (order.items.length === 0) return fail("empty_order", "El pedido no tiene productos.");
+
+  const hadStockDeducted = order.status === "paid" || order.status === "fulfilled";
+
+  try {
+    const cancelled = await transaction(async (tx) => {
+      const marked = await cancelOrderFromStatus(order.id, order.status, tx);
+      if (!marked) {
+        throw new ApprovalRejected("order_not_cancellable", "Ese pedido ya no se puede cancelar.");
+      }
+
+      if (hadStockDeducted) {
+        for (const item of order.items) {
+          const restoreQty = item.quantity - item.madeToOrderQuantity;
+          if (restoreQty <= 0) continue;
+          const updated = await incrementStock(item.productId, restoreQty, tx);
+          if (!updated) {
+            throw new ApprovalRejected(
+              "product_missing",
+              `No encontramos ${item.productName} para restaurar el stock.`,
+            );
+          }
+        }
+
+        const payment = await findPaymentByOrderId(order.id, tx);
+        if (payment?.status === "approved") {
+          const rejected = await setPaymentStatus(payment.id, "rejected", tx);
+          if (!rejected) {
+            throw new ApprovalRejected("payment_missing", "No se pudo marcar el pago como rechazado.");
+          }
+        }
+      }
+
+      return marked;
+    });
+
+    return { ok: true, value: { publicCode: cancelled.publicCode, restoredStock: hadStockDeducted } };
+  } catch (error) {
+    return rejectionOrThrow(error);
+  }
 }
 
 export async function fulfillOrder(publicCode: string): Promise<ServiceResult<{ publicCode: string }>> {
