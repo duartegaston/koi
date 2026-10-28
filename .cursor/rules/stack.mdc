@@ -7,7 +7,7 @@ alwaysApply: true
 
 Full-stack en este repo:
 
-- Next.js 15 (App Router), runtime Node.js sobre Cloudflare Workers (`nodejs_compat`)
+- Next.js 16 (App Router), runtime Node.js sobre Cloudflare Workers (`nodejs_compat`)
 - TypeScript estricto (`strict`, `noUncheckedIndexedAccess`)
 - Tailwind CSS v4
 - Drizzle ORM sobre PostgreSQL

@@ -10,6 +10,6 @@ Para documentación, referencias de API o código de paquetes externos, leé la 
 Aplica a Next.js, Drizzle, PostgreSQL, Cloudflare, Tailwind y Zod.
 
 1. `resolve-library-id` con el nombre del paquete y la pregunta completa.
-2. Elegí el ID oficial (y el de la versión del repo si existe: Next.js 15, React 19).
+2. Elegí el ID oficial (y el de la versión del repo si existe: Next.js 16, React 19).
 3. `query-docs` con ese `libraryId` y la pregunta.
 4. Escribí el código a partir de esa documentación.

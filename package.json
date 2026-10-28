@@ -20,10 +20,10 @@
     "db:import-catalog": "node scripts/import-catalog.mjs"
   },
   "dependencies": {
-    "@opennextjs/cloudflare": "^1.20.10",
+    "@opennextjs/cloudflare": "^1.20.14",
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.0",
-    "next": "^15.5.27",
+    "next": "^16.4.3",
     "postgres": "^3.4.7",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
@@ -40,7 +40,7 @@
     "@types/react-dom": "^19",
     "drizzle-kit": "^0.31.0",
     "eslint": "^9",
-    "eslint-config-next": "^15.5.27",
+    "eslint-config-next": "^16.4.3",
     "tailwindcss": "^4",
     "typescript": "^5",
     "wrangler": "^4.148.0"
