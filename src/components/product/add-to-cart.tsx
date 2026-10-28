@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { addToCart } from "@/actions/cart";
+import { notifyCartAdded } from "@/components/layout/cart-feedback";
 import {
   beginCartWrite,
   endCartWrite,
@@ -53,6 +54,7 @@ export function AddToCart({
     const writtenAt = publishCart(
       withAddedProduct(previous, { id: productId, name, slug, price, stock, imageUrl, limit }, quantity),
     );
+    notifyCartAdded(name);
 
     const data = new FormData(event.currentTarget);
     try {

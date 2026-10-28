@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { setCartQuantity, type CartActionState } from "@/actions/cart";
+import { onCartAdded } from "@/components/layout/cart-feedback";
 import { ProductImage } from "@/components/product/product-image";
 import { buttonClass } from "@/components/ui/button";
 import type { CartLineSnapshot, CartSnapshot } from "@/lib/cart-types";
@@ -22,14 +23,19 @@ import { availabilityNote } from "@/lib/order-limits";
 import { cn } from "@/lib/utils";
 
 const idleCartState: CartActionState = { status: "idle" };
+const TOAST_MS = 4200;
 
 export function CartDrawer({ cart: serverCart }: { cart: CartSnapshot }) {
   const cart = useLiveCart(serverCart);
   const pathname = usePathname();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const previousCount = useRef<number | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [open, setOpen] = useState(false);
+  const [badgePulse, setBadgePulse] = useState(false);
+  const [toast, setToast] = useState<{ id: number; productName: string } | null>(null);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const toastTitleId = useId();
 
   useEffect(() => {
     setQuantities((current) => {
@@ -72,6 +78,7 @@ export function CartDrawer({ cart: serverCart }: { cart: CartSnapshot }) {
 
   useEffect(() => {
     setOpen(false);
+    setToast(null);
   }, [pathname]);
 
   useEffect(() => {
@@ -79,9 +86,28 @@ export function CartDrawer({ cart: serverCart }: { cart: CartSnapshot }) {
       previousCount.current = itemCount;
       return;
     }
-    if (itemCount > previousCount.current) setOpen(true);
+    if (itemCount > previousCount.current) {
+      setBadgePulse(true);
+      const timer = setTimeout(() => setBadgePulse(false), 600);
+      previousCount.current = itemCount;
+      return () => clearTimeout(timer);
+    }
     previousCount.current = itemCount;
   }, [itemCount]);
+
+  useEffect(() => {
+    return onCartAdded(({ productName }) => {
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+      setToast({ id: Date.now(), productName });
+      toastTimer.current = setTimeout(() => setToast(null), TOAST_MS);
+    });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+    };
+  }, []);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -89,6 +115,7 @@ export function CartDrawer({ cart: serverCart }: { cart: CartSnapshot }) {
     if (open && !dialog.open) {
       dialog.showModal();
       dialog.focus({ preventScroll: true });
+      setToast(null);
     }
     if (!open && dialog.open) dialog.close();
   }, [open]);
@@ -106,11 +133,34 @@ export function CartDrawer({ cart: serverCart }: { cart: CartSnapshot }) {
       >
         <CartIcon />
         {itemCount > 0 ? (
-          <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-ink px-1 font-label text-xs leading-none text-paper ring-2 ring-ink">
+          <span
+            className={cn(
+              "absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-ink px-1 font-label text-xs leading-none text-paper ring-2 ring-ink",
+              badgePulse && "cart-badge-pulse",
+            )}
+          >
             {itemCount}
           </span>
         ) : null}
       </button>
+      {toast && !open ? (
+        <div
+          role="status"
+          aria-labelledby={toastTitleId}
+          className="cart-toast fixed inset-x-4 bottom-4 z-50 mx-auto flex max-w-sm items-center gap-3 border border-line bg-paper px-4 py-3 shadow-sm md:inset-x-auto md:right-6 md:bottom-6"
+        >
+          <p id={toastTitleId} className="min-w-0 flex-1 text-sm leading-snug">
+            Agregaste <span className="font-medium">{toast.productName}</span>
+          </p>
+          <button
+            type="button"
+            className="shrink-0 font-label text-sm font-medium underline underline-offset-4"
+            onClick={() => setOpen(true)}
+          >
+            Ver carrito
+          </button>
+        </div>
+      ) : null}
       <dialog
         ref={dialogRef}
         tabIndex={-1}
@@ -146,18 +196,16 @@ export function CartDrawer({ cart: serverCart }: { cart: CartSnapshot }) {
           {visibleLines.length === 0 ? (
             <div className="flex flex-1 flex-col items-start justify-center gap-4 px-5">
               <p>El carrito está vacío.</p>
-              <a
+              <Link
                 href="/tienda"
                 className="text-sm underline underline-offset-4"
-                onClick={() => {
-                  window.location.assign("/tienda");
-                }}
+                onClick={() => setOpen(false)}
               >
                 Ver la tienda
-              </a>
+              </Link>
             </div>
           ) : (
-            <div className="space-y-4 border-t border-line p-5">
+            <div className="space-y-3 border-t border-line p-5">
               <div className="flex items-center justify-between text-sm">
                 <span>Subtotal</span>
                 <span>{formatArs(subtotal)}</span>
@@ -174,7 +222,14 @@ export function CartDrawer({ cart: serverCart }: { cart: CartSnapshot }) {
                 className={cn(buttonClass.primary, "w-full", blocked && "pointer-events-none opacity-50")}
                 onClick={() => setOpen(false)}
               >
-                Continuar
+                Finalizar compra
+              </Link>
+              <Link
+                href="/tienda"
+                className={cn(buttonClass.secondary, "w-full")}
+                onClick={() => setOpen(false)}
+              >
+                Seguir comprando
               </Link>
             </div>
           )}

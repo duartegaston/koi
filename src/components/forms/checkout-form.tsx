@@ -46,7 +46,7 @@ export function CheckoutForm({
 
   useEffect(() => {
     if (!leaving) return;
-    router.replace("/");
+    router.replace("/tienda");
   }, [leaving, router]);
 
   if (storeError || !store) {
@@ -62,8 +62,8 @@ export function CheckoutForm({
       <div className="mx-auto max-w-lg px-6 py-16">
         <EmptyState title="El carrito está vacío" body="Agregá un producto para armar el pedido." />
         <p className="mt-6 text-center">
-          <Link href="/" className="text-sm underline underline-offset-4">
-            Volver a la tienda
+          <Link href="/tienda" className="text-sm underline underline-offset-4">
+            Ver la tienda
           </Link>
         </p>
       </div>
