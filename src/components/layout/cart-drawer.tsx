@@ -147,14 +147,14 @@ export function CartDrawer({ cart: serverCart }: { cart: CartSnapshot }) {
         <div
           role="status"
           aria-labelledby={toastTitleId}
-          className="cart-toast fixed inset-x-4 bottom-4 z-50 mx-auto flex max-w-sm items-center gap-3 border border-line bg-paper px-4 py-3 shadow-sm md:inset-x-auto md:right-6 md:bottom-6"
+          className="cart-toast fixed inset-x-4 bottom-4 z-50 mx-auto flex max-w-sm items-center gap-3 border border-line bg-paper px-4 py-3 text-foreground shadow-sm md:inset-x-auto md:right-6 md:bottom-6"
         >
-          <p id={toastTitleId} className="min-w-0 flex-1 text-sm leading-snug">
+          <p id={toastTitleId} className="min-w-0 flex-1 text-sm leading-snug text-foreground">
             Agregaste <span className="font-medium">{toast.productName}</span>
           </p>
           <button
             type="button"
-            className="shrink-0 font-label text-sm font-medium underline underline-offset-4"
+            className="shrink-0 font-label text-sm font-medium text-ink underline underline-offset-4"
             onClick={() => setOpen(true)}
           >
             Ver carrito
