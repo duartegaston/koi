@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useMemo, useRef, useState } from "react";
+import { useActionState, useEffect, useId, useMemo, useRef, useState } from "react";
 import { createManualOrderAction, type ManualOrderState } from "@/actions/admin-orders";
 import { Button } from "@/components/ui/button";
 import { InputField, SelectField } from "@/components/ui/field";
@@ -41,12 +41,11 @@ export function ManualOrderForm({ products }: { products: ProductOption[] }) {
     <form action={action} className="grid max-w-xl gap-6">
       <InputField label="Nombre" name="customerName" autoComplete="name" required maxLength={120} errors={errors?.customerName} />
       <InputField
-        label="Teléfono"
+        label="Teléfono (opcional)"
         name="customerPhone"
         type="tel"
         inputMode="tel"
         autoComplete="tel"
-        required
         maxLength={20}
         errors={errors?.customerPhone}
       />
@@ -127,30 +126,17 @@ function OrderLine({
   onQuantity: (quantity: string) => void;
   onRemove: () => void;
 }) {
-  const productId = `manual-product-${index}`;
   const quantityId = `manual-quantity-${index}`;
 
   return (
     <div className="grid gap-3 border border-line bg-surface p-4 sm:grid-cols-[1fr_6rem]">
-      <label className="min-w-0 space-y-1.5">
-        <span className="block font-label text-sm font-medium">Producto {index + 1}</span>
-        <select
-          id={productId}
-          name="productId"
-          required
-          value={selectedId}
-          onChange={(event) => onProduct(event.target.value)}
-          className="h-11 w-full border border-line bg-background px-3"
-        >
-          <option value="">Elegí un producto</option>
-          {products.map((product) => (
-            <option key={product.id} value={product.id} disabled={takenIds.has(product.id)}>
-              {product.name} · {formatArs(product.price)} · stock {product.stock}
-              {product.isActive ? "" : " · oculto"}
-            </option>
-          ))}
-        </select>
-      </label>
+      <ProductPicker
+        index={index}
+        products={products}
+        selectedId={selectedId}
+        takenIds={takenIds}
+        onProduct={onProduct}
+      />
       <label className="space-y-1.5">
         <span className="block font-label text-sm font-medium">Cantidad</span>
         <input
@@ -172,6 +158,155 @@ function OrderLine({
       ) : null}
     </div>
   );
+}
+
+function ProductPicker({
+  index,
+  products,
+  selectedId,
+  takenIds,
+  onProduct,
+}: {
+  index: number;
+  products: ProductOption[];
+  selectedId: string;
+  takenIds: Set<string>;
+  onProduct: (productId: string) => void;
+}) {
+  const listId = useId();
+  const inputId = `manual-product-${index}`;
+  const rootRef = useRef<HTMLDivElement>(null);
+  const selected = products.find((product) => product.id === selectedId);
+  const [query, setQuery] = useState(selected ? productLabel(selected) : "");
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    if (!selectedId) return;
+    const product = products.find((item) => item.id === selectedId);
+    if (product) setQuery(productLabel(product));
+  }, [products, selectedId]);
+
+  const matches = useMemo(() => {
+    const needle = normalize(query);
+    return products.filter((product) => {
+      if (takenIds.has(product.id) && product.id !== selectedId) return false;
+      if (!needle) return true;
+      return normalize(product.name).includes(needle);
+    });
+  }, [products, query, selectedId, takenIds]);
+
+  const activeProduct = matches[active];
+  const activeOptionId = open && activeProduct ? `${listId}-${active}` : undefined;
+
+  function choose(product: ProductOption) {
+    onProduct(product.id);
+    setQuery(productLabel(product));
+    setOpen(false);
+  }
+
+  function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Escape") {
+      setOpen(false);
+      return;
+    }
+    if (!open || matches.length === 0) return;
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActive((current) => (current + 1) % matches.length);
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActive((current) => (current - 1 + matches.length) % matches.length);
+    } else if (event.key === "Enter" && activeProduct) {
+      event.preventDefault();
+      choose(activeProduct);
+    }
+  }
+
+  return (
+    <div
+      ref={rootRef}
+      className="relative min-w-0 space-y-1.5"
+      onBlur={(event) => {
+        const next = event.relatedTarget;
+        if (!(next instanceof Node) || !rootRef.current?.contains(next)) {
+          setOpen(false);
+          setQuery(selected ? productLabel(selected) : "");
+        }
+      }}
+    >
+      <label htmlFor={inputId} className="block font-label text-sm font-medium">
+        Producto {index + 1}
+      </label>
+      <input type="hidden" name="productId" value={selectedId} />
+      <input
+        id={inputId}
+        type="search"
+        autoComplete="off"
+        placeholder="Buscar producto"
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-activedescendant={activeOptionId}
+        value={query}
+        onChange={(event) => {
+          const next = event.target.value;
+          setQuery(next);
+          setOpen(true);
+          setActive(0);
+          if (selected && next !== productLabel(selected)) onProduct("");
+        }}
+        onFocus={() => {
+          setOpen(true);
+          setActive(0);
+        }}
+        onKeyDown={onKeyDown}
+        className="h-11 w-full border border-line bg-background px-3 outline-none focus:border-primary"
+      />
+      {open ? (
+        <div className="absolute top-full right-0 left-0 z-30 mt-1 border border-line bg-paper shadow-lg">
+          {matches.length === 0 ? (
+            <p className="px-4 py-3 text-sm text-muted" role="status">
+              No hay productos con ese nombre.
+            </p>
+          ) : (
+            <ul id={listId} role="listbox" className="max-h-64 overflow-y-auto py-1">
+              {matches.map((product, optionIndex) => (
+                <li key={product.id} role="presentation">
+                  <button
+                    type="button"
+                    id={`${listId}-${optionIndex}`}
+                    role="option"
+                    aria-selected={optionIndex === active || product.id === selectedId}
+                    className="block w-full px-4 py-3 text-left text-sm hover:bg-surface aria-selected:bg-surface"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onMouseEnter={() => setActive(optionIndex)}
+                    onClick={() => choose(product)}
+                  >
+                    {productLabel(product)}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function productLabel(product: ProductOption): string {
+  return `${product.name} · ${formatArs(product.price)} · stock ${product.stock}${product.isActive ? "" : " · oculto"}`;
+}
+
+function normalize(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .trim();
 }
 
 function takenExcept(rows: string[], selected: Record<string, string>, current: string): Set<string> {

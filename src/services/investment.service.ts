@@ -1,6 +1,7 @@
 import "server-only";
 
 import { sumRecoveredProductSubtotal } from "@/data-access/admin-order.repository";
+import { sumStockRetailValue } from "@/data-access/admin-product.repository";
 import {
   deleteSupplierPurchase,
   insertSupplierPurchase,
@@ -16,14 +17,20 @@ export type InvestmentSummary = {
   invested: string;
   recovered: string;
   balance: string;
+  toSell: string;
 };
 
 export async function getInvestmentSummary(): Promise<InvestmentSummary> {
-  const [purchases, recoveredRaw] = await Promise.all([listSupplierPurchases(), sumRecoveredProductSubtotal()]);
+  const [purchases, recoveredRaw, toSellRaw] = await Promise.all([
+    listSupplierPurchases(),
+    sumRecoveredProductSubtotal(),
+    sumStockRetailValue(),
+  ]);
   const invested = purchases.reduce((sum, row) => addAmounts(sum, row.amount), "0.00");
   const recovered = normalizeMoney(recoveredRaw);
+  const toSell = normalizeMoney(toSellRaw);
   const balance = fromCents(toCents(recovered) - toCents(invested));
-  return { purchases, invested, recovered, balance };
+  return { purchases, invested, recovered, balance, toSell };
 }
 
 export async function addSupplierPurchase(input: {

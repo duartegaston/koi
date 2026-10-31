@@ -141,7 +141,10 @@ export const manualOrderSchema = z
       .string()
       .trim()
       .transform((value) => value.replace(/\D/g, ""))
-      .pipe(z.string().regex(/^[1-9]\d{7,14}$/, "Ingresá un teléfono válido, con código de área.")),
+      .refine(
+        (value) => value === "" || /^[1-9]\d{7,14}$/.test(value),
+        "Ingresá un teléfono válido, con código de área.",
+      ),
     paymentMethod: z.enum(["transfer", "cash"], { message: "Elegí transferencia o efectivo." }),
     delivered: z.boolean(),
     lines: z

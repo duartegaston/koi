@@ -5,7 +5,7 @@ import { readAdminSessionVersion } from "@/data-access/admin-session.repository"
 import { getServerEnv } from "@/lib/env";
 
 const cookieName = "koi_admin";
-const maxAgeSeconds = 60 * 60 * 12;
+const maxAgeSeconds = 60 * 60 * 24 * 7;
 
 export async function readAdminSession(): Promise<boolean> {
   const store = await cookies();

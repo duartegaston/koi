@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, desc, eq, gte, inArray, isNull, lte } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 import { schema } from "@/db";
 import { executor, firstRow, type DbExecutor } from "./executor";
 
@@ -76,7 +76,7 @@ export async function listManualOrderProducts(db?: DbExecutor) {
     })
     .from(products)
     .where(isNull(products.deletedAt))
-    .orderBy(asc(products.name));
+    .orderBy(desc(products.stock), asc(products.name));
 }
 
 export async function listStockProducts(db?: DbExecutor) {
@@ -84,12 +84,24 @@ export async function listStockProducts(db?: DbExecutor) {
     .select({
       id: products.id,
       name: products.name,
+      price: products.price,
       stock: products.stock,
       isActive: products.isActive,
     })
     .from(products)
     .where(isNull(products.deletedAt))
     .orderBy(desc(products.stock), asc(products.name));
+}
+
+/** Valor de catálogo de todo el stock restante: sum(stock × price). */
+export async function sumStockRetailValue(db?: DbExecutor): Promise<string> {
+  const [row] = await executor(db)
+    .select({
+      value: sql<string>`coalesce(sum(${products.stock} * ${products.price}), 0)`,
+    })
+    .from(products)
+    .where(isNull(products.deletedAt));
+  return row?.value ?? "0";
 }
 
 export async function listLowStockProducts(threshold: number, limit: number, db?: DbExecutor) {

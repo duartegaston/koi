@@ -37,8 +37,12 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
           <dt className="font-label text-sm tracking-wide text-muted">Cliente</dt>
           <dd className="mt-2">
             {order.customerName}
-            <br />
-            {order.customerPhone}
+            {order.customerPhone ? (
+              <>
+                <br />
+                {order.customerPhone}
+              </>
+            ) : null}
             {order.customerEmail ? (
               <>
                 <br />

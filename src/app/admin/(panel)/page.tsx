@@ -110,7 +110,7 @@ export default async function AdminHomePage({ searchParams }: AdminHomeProps) {
             Cargar compras
           </Link>
         </div>
-        <dl className="mt-4 grid gap-4 sm:grid-cols-3">
+        <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <dt className="font-label text-sm tracking-wide text-muted">Invertido</dt>
             <dd className="mt-1 text-2xl break-words">{formatArs(investment.invested)}</dd>
@@ -122,6 +122,10 @@ export default async function AdminHomePage({ searchParams }: AdminHomeProps) {
           <div>
             <dt className="font-label text-sm tracking-wide text-muted">{investmentBalanceLabel(investment.balance, investment.invested)}</dt>
             <dd className="mt-1 text-2xl break-words">{formatArs(investment.balance)}</dd>
+          </div>
+          <div>
+            <dt className="font-label text-sm tracking-wide text-muted">Por vender</dt>
+            <dd className="mt-1 text-2xl break-words">{formatArs(investment.toSell)}</dd>
           </div>
         </dl>
       </section>

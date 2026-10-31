@@ -38,6 +38,7 @@ export async function createProductAction(_prev: ProductFormState, formData: For
   }
 
   revalidateCatalog();
+  revalidateInvestmentViews();
   redirect(`/admin/productos/${created.value.id}`);
 }
 
@@ -68,6 +69,7 @@ export async function updateProductAction(_prev: ProductFormState, formData: For
   }
 
   revalidateCatalog();
+  revalidateInvestmentViews();
   return { status: "saved" };
 }
 
@@ -80,6 +82,7 @@ export async function deleteProductAction(_prev: ProductFormState, formData: For
   if (!deleted.ok) return { status: "error", message: deleted.message };
 
   revalidateCatalog();
+  revalidateInvestmentViews();
   redirect("/admin/productos");
 }
 
@@ -96,7 +99,7 @@ export async function updateStockAction(_prev: StockState, formData: FormData): 
 
   revalidateCatalog();
   revalidatePath("/admin/stock");
-  revalidatePath("/admin");
+  revalidateInvestmentViews();
   return { status: "saved", stock: updated.value.stock };
 }
 
@@ -133,4 +136,9 @@ async function readImages(formData: FormData): Promise<{ ok: true; images: Prepa
 
 function revalidateCatalog() {
   revalidatePath("/", "layout");
+}
+
+function revalidateInvestmentViews() {
+  revalidatePath("/admin");
+  revalidatePath("/admin/inversion");
 }

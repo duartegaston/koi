@@ -29,10 +29,11 @@ export default async function InvestmentPage() {
 
 function InvestmentNumbers({ summary }: { summary: InvestmentSummary }) {
   return (
-    <dl className="mt-8 grid gap-4 sm:grid-cols-3">
+    <dl className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <NumberCard label="Invertido" value={formatArs(summary.invested)} />
       <NumberCard label="Recuperado" value={formatArs(summary.recovered)} />
       <NumberCard label={balanceCaption(summary)} value={formatArs(summary.balance)} />
+      <NumberCard label="Por vender" value={formatArs(summary.toSell)} />
     </dl>
   );
 }
