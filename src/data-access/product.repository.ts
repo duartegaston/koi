@@ -118,7 +118,14 @@ export async function listProducts(filter: ProductListFilter = {}, db?: DbExecut
     .from(products)
     .innerJoin(categories, eq(categories.id, products.categoryId))
     .where(visibleProduct(filter))
-    .orderBy(asc(categories.sortOrder), asc(categories.name), asc(products.name));
+    .orderBy(
+      asc(categories.sortOrder),
+      asc(categories.name),
+      // Combos de Navidad primero (Papa Noel → Fiesta → Clásico por precio).
+      sql`case when ${products.name} ilike 'Combo %' then 0 else 1 end`,
+      sql`case when ${products.name} ilike 'Combo %' then ${products.price} end desc nulls last`,
+      asc(products.name),
+    );
 
   return withImages(rows, db);
 }
