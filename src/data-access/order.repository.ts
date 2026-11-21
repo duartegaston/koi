@@ -4,7 +4,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { schema } from "@/db";
 import { executor, firstRow, type DbExecutor } from "./executor";
 
-const { orderItems, orders } = schema;
+const { categories, orderItems, orders, products } = schema;
 
 export const orderStatuses = ["pending_payment", "paid", "cancelled", "fulfilled"] as const;
 export type OrderStatus = (typeof orderStatuses)[number];
@@ -44,7 +44,7 @@ export type NewOrderItemInput = {
   lineTotal: string;
 };
 
-export type OrderItemRecord = NewOrderItemInput & { id: string };
+export type OrderItemRecord = NewOrderItemInput & { id: string; categorySlug: string | null };
 
 export type OrderRecord = {
   id: string;
@@ -229,8 +229,11 @@ async function withItems(
       quantity: orderItems.quantity,
       madeToOrderQuantity: orderItems.madeToOrderQuantity,
       lineTotal: orderItems.lineTotal,
+      categorySlug: categories.slug,
     })
     .from(orderItems)
+    .innerJoin(products, eq(products.id, orderItems.productId))
+    .innerJoin(categories, eq(categories.id, products.categoryId))
     .where(eq(orderItems.orderId, row.id))
     .orderBy(asc(orderItems.productName));
 

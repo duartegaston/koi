@@ -1,3 +1,5 @@
+import { isNavidadCategory, NAVIDAD_ORDER_NOTE } from "@/lib/navidad";
+
 /** Tope cuando el producto no tiene máximo propio. El excedente de stock se pide. */
 export const DEFAULT_ORDER_CAP = 99;
 
@@ -11,7 +13,15 @@ export function madeToOrderUnits(quantity: number, stock: number): number {
   return Math.max(0, quantity - Math.max(stock, 0));
 }
 
-export function availabilityNote(quantity: number, stock: number): string | null {
+export function availabilityNote(
+  quantity: number,
+  stock: number,
+  categorySlug?: string | null,
+): string | null {
+  if (isNavidadCategory(categorySlug)) {
+    return quantity > 0 ? NAVIDAD_ORDER_NOTE : null;
+  }
+
   const available = Math.max(stock, 0);
   if (madeToOrderUnits(quantity, available) <= 0) return null;
   if (available === 0) return `Sin stock. ${MADE_TO_ORDER_NOTE}`;

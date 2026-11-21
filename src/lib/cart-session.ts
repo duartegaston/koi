@@ -33,6 +33,7 @@ export function toSnapshot(cart: CartView): CartSnapshot {
         quantity: line.quantity,
         lineTotal: line.lineTotal,
         stock: line.stock,
+        categorySlug: line.categorySlug,
         imageUrl: line.imageUrl,
         problem: line.problem,
         limit: lineLimit(line),

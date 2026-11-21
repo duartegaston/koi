@@ -19,6 +19,7 @@ import {
   withLineQuantity,
 } from "@/components/layout/cart-store";
 import { addAmounts, formatArs, multiplyAmount } from "@/lib/money";
+import { showsAsAvailable } from "@/lib/navidad";
 import { availabilityNote } from "@/lib/order-limits";
 import { cn } from "@/lib/utils";
 
@@ -263,7 +264,7 @@ function CartLine({
       : line.problem === "exceeds_limit"
         ? "La cantidad supera lo que podés pedir."
         : null;
-  const note = availabilityNote(quantity, line.stock);
+  const note = availabilityNote(quantity, line.stock, line.categorySlug);
   const atCap = line.limit == null || quantity >= line.limit;
 
   useEffect(() => {
@@ -362,7 +363,11 @@ function CartLine({
   return (
     <div className="grid grid-cols-[4.5rem_1fr] gap-4 px-5 py-4">
       <Link href={`/producto/${line.slug}`} className="relative block aspect-[3/4] bg-surface">
-        <ProductImage src={line.imageUrl} alt="" muted={line.stock <= 0} />
+        <ProductImage
+          src={line.imageUrl}
+          alt=""
+          muted={!showsAsAvailable(line.stock, line.categorySlug)}
+        />
       </Link>
       <div className="flex min-w-0 flex-col">
         <div className="flex items-start justify-between gap-3">

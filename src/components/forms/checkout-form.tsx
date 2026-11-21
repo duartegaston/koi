@@ -315,8 +315,10 @@ function CheckoutFields({
               <span>
                 {line.quantity} × {line.name}
                 {line.problem ? <span className="mt-1 block text-xs">Revisá esta línea en el carrito.</span> : null}
-                {availabilityNote(line.quantity, line.stock) ? (
-                  <span className="mt-1 block text-xs">{availabilityNote(line.quantity, line.stock)}</span>
+                {availabilityNote(line.quantity, line.stock, line.categorySlug) ? (
+                  <span className="mt-1 block text-xs">
+                    {availabilityNote(line.quantity, line.stock, line.categorySlug)}
+                  </span>
                 ) : null}
               </span>
               <span>{formatArs(line.lineTotal)}</span>

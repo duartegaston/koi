@@ -263,6 +263,7 @@ export async function readCheckoutReceipt(publicCode: string): Promise<CheckoutR
           quantity: item.quantity,
           lineTotal: item.lineTotal,
           madeToOrder: item.madeToOrderQuantity,
+          categorySlug: item.categorySlug,
         })),
         fulfillmentMethod: order.fulfillmentMethod,
         addressLine: order.addressLine,

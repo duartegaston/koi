@@ -4,6 +4,7 @@ import { ProductGrid } from "@/components/product/product-grid";
 import { EmptyState } from "@/components/ui/empty-state";
 import { JsonLd } from "@/components/ui/json-ld";
 import { getCategories, getProducts } from "@/lib/catalog";
+import { isNavidadCategory, NAVIDAD_CATEGORY_DESCRIPTION, showsAsAvailable } from "@/lib/navidad";
 import { breadcrumbJsonLd, describePage, itemListJsonLd, pageMetadata } from "@/lib/seo";
 
 type CategoryPageProps = {
@@ -31,7 +32,12 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
   const category = (await getCategories()).find((item) => item.slug === slug);
   if (!category) notFound();
 
-  const products = (await getProducts(slug)).toSorted((a, b) => Number(a.stock <= 0) - Number(b.stock <= 0));
+  const products = (await getProducts(slug)).toSorted(
+    (a, b) =>
+      Number(showsAsAvailable(b.stock, b.categorySlug)) - Number(showsAsAvailable(a.stock, a.categorySlug)),
+  );
+  const description =
+    category.description ?? (isNavidadCategory(category.slug) ? NAVIDAD_CATEGORY_DESCRIPTION : null);
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-16 text-center md:py-20">
@@ -49,8 +55,8 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
       />
       <p className="font-label text-sm tracking-wide text-muted">Categoría</p>
       <h1 className="mt-3 text-5xl md:text-7xl">{category.name}</h1>
-      {category.description ? (
-        <p className="mx-auto mt-5 max-w-xl text-sm leading-relaxed text-muted">{category.description}</p>
+      {description ? (
+        <p className="mx-auto mt-5 max-w-xl text-sm leading-relaxed text-muted">{description}</p>
       ) : null}
       <div className="mt-14 text-left">
         {products.length === 0 ? (

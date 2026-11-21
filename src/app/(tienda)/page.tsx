@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { JsonLd } from "@/components/ui/json-ld";
 import { Marquee } from "@/components/ui/marquee";
 import { getProducts } from "@/lib/catalog";
+import { showsAsAvailable } from "@/lib/navidad";
 import { howToOrderJsonLd, pageMetadata } from "@/lib/seo";
 import { homeDescription, homeTitle } from "@/lib/site";
 import { storeContactWhatsAppUrl } from "@/lib/whatsapp/link";
@@ -20,8 +21,10 @@ export const metadata: Metadata = pageMetadata({
 
 const ticker = ["Chocolates Rapanui", "Envío en Posadas"];
 
-function inStockFirst<T extends { stock: number }>(products: T[]) {
-  return [...products].sort((a, b) => Number(a.stock <= 0) - Number(b.stock <= 0));
+function inStockFirst<T extends { stock: number; categorySlug: string }>(products: T[]) {
+  return [...products].sort(
+    (a, b) => Number(!showsAsAvailable(a.stock, a.categorySlug)) - Number(!showsAsAvailable(b.stock, b.categorySlug)),
+  );
 }
 
 const steps = [

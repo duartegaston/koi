@@ -4,7 +4,7 @@ import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { schema } from "@/db";
 import { executor, firstRow, type DbExecutor } from "./executor";
 
-const { cartItems, carts, productImages, products } = schema;
+const { cartItems, carts, categories, productImages, products } = schema;
 
 export const cartStatuses = ["active", "converted", "abandoned"] as const;
 export type CartStatus = (typeof cartStatuses)[number];
@@ -25,6 +25,7 @@ export type CartLine = {
   maxPerOrder: number | null;
   isActive: boolean;
   deletedAt: Date | null;
+  categorySlug: string;
   imageUrl: string | null;
 };
 
@@ -67,9 +68,11 @@ export async function listCartLines(cartId: string, db?: DbExecutor): Promise<Ca
       maxPerOrder: products.maxPerOrder,
       isActive: products.isActive,
       deletedAt: products.deletedAt,
+      categorySlug: categories.slug,
     })
     .from(cartItems)
     .innerJoin(products, eq(products.id, cartItems.productId))
+    .innerJoin(categories, eq(categories.id, products.categoryId))
     .where(eq(cartItems.cartId, cartId))
     .orderBy(asc(products.name));
 

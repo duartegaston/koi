@@ -6,6 +6,7 @@ export type CartLineSnapshot = {
   quantity: number;
   lineTotal: string;
   stock: number;
+  categorySlug: string | null;
   imageUrl: string | null;
   problem: "unavailable" | "exceeds_limit" | null;
   limit: number | null;

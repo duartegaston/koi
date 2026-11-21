@@ -5,6 +5,7 @@ import { OrderActions } from "@/components/forms/order-actions";
 import { fulfillmentLabel, formatAdminDate, orderStatusLabel, paymentMethodLabel, paymentStatusLabel } from "@/lib/admin-labels";
 import { mapLink } from "@/lib/geo";
 import { formatArs } from "@/lib/money";
+import { isNavidadCategory, NAVIDAD_MADE_TO_ORDER_SUFFIX } from "@/lib/navidad";
 import { getOrderForAdmin } from "@/services/order.service";
 
 type OrderDetailPageProps = {
@@ -92,9 +93,12 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
             <span>
               {item.productName}
               <span className="text-muted"> × {item.quantity}</span>
-              {item.madeToOrderQuantity > 0 ? (
+                  {item.madeToOrderQuantity > 0 ? (
                 <span className="mt-1 block text-xs text-muted">
-                  {item.madeToOrderQuantity} a pedido · llega entre 7 y 10 días hábiles
+                  {item.madeToOrderQuantity}{" "}
+                  {isNavidadCategory(item.categorySlug)
+                    ? NAVIDAD_MADE_TO_ORDER_SUFFIX
+                    : "a pedido · llega entre 7 y 10 días hábiles"}
                 </span>
               ) : null}
             </span>

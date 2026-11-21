@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getServerEnv } from "@/lib/env";
+import { isNavidadCategory, NAVIDAD_MADE_TO_ORDER_SUFFIX } from "@/lib/navidad";
 import { deliveriesPausedNotice } from "@/lib/site";
 
 const TEXT_LIMIT = 3500;
@@ -32,7 +33,13 @@ export type OrderWhatsAppInput = {
   publicCode: string;
   customerName: string;
   customerPhone: string;
-  lines: Array<{ name: string; quantity: number; lineTotal: string; madeToOrder: number }>;
+  lines: Array<{
+    name: string;
+    quantity: number;
+    lineTotal: string;
+    madeToOrder: number;
+    categorySlug?: string | null;
+  }>;
   fulfillmentMethod: "motorcycle" | "pickup";
   addressLine: string | null;
   geocodedAddress: string | null;
@@ -52,7 +59,12 @@ export function orderWhatsAppText(order: OrderWhatsAppInput): string {
     "",
     "Productos:",
     ...order.lines.map((line) => {
-      const madeToOrder = line.madeToOrder > 0 ? ` (${line.madeToOrder} a pedido, llega entre 7 y 10 días hábiles)` : "";
+      const madeToOrder =
+        line.madeToOrder > 0
+          ? isNavidadCategory(line.categorySlug)
+            ? ` (${line.madeToOrder} ${NAVIDAD_MADE_TO_ORDER_SUFFIX})`
+            : ` (${line.madeToOrder} a pedido, llega entre 7 y 10 días hábiles)`
+          : "";
       return `- ${line.quantity} x ${line.name}: $${line.lineTotal}${madeToOrder}`;
     }),
     "",

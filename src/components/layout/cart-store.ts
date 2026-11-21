@@ -127,6 +127,7 @@ export function withAddedProduct(
     slug: string;
     price: string;
     stock: number;
+    categorySlug: string | null;
     imageUrl: string | null;
     limit: number | null;
   },
@@ -142,6 +143,7 @@ export function withAddedProduct(
     quantity: nextQuantity,
     lineTotal: multiplyAmount(existing?.unitPrice ?? product.price, nextQuantity),
     stock: product.stock,
+    categorySlug: existing?.categorySlug ?? product.categorySlug,
     imageUrl: existing?.imageUrl ?? product.imageUrl,
     problem: null,
     limit: existing?.limit ?? product.limit,

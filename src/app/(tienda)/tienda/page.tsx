@@ -4,6 +4,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { JsonLd } from "@/components/ui/json-ld";
 import type { CatalogProduct } from "@/data-access/product.repository";
 import { getProducts } from "@/lib/catalog";
+import { isNavidadCategory, NAVIDAD_CATEGORY_DESCRIPTION, showsAsAvailable } from "@/lib/navidad";
 import { breadcrumbJsonLd, itemListJsonLd, pageMetadata } from "@/lib/seo";
 import { shopDescription, shopTitle } from "@/lib/site";
 
@@ -16,11 +17,11 @@ export const metadata: Metadata = pageMetadata({
 export default async function ShopPage() {
   const products = await getProducts();
   const inStock = groupByCategory(
-    products.filter((product) => product.stock > 0),
+    products.filter((product) => showsAsAvailable(product.stock, product.categorySlug)),
     "stock",
   );
   const madeToOrder = groupByCategory(
-    products.filter((product) => product.stock <= 0),
+    products.filter((product) => !showsAsAvailable(product.stock, product.categorySlug)),
     "pedido",
   );
 
@@ -86,12 +87,14 @@ function CategoryGroup({
   priorityCount: number;
 }) {
   const id = `categoria-${group.availability}-${group.slug}`;
+  const navidad = isNavidadCategory(group.slug);
 
   return (
     <section aria-labelledby={id}>
       <h2 id={id} className={compact ? "text-center text-2xl md:text-3xl" : "text-center text-3xl md:text-4xl"}>
         {group.name}
       </h2>
+      {navidad ? <p className="mt-3 text-center text-sm text-muted">{NAVIDAD_CATEGORY_DESCRIPTION}</p> : null}
       <div className="mt-8">
         <ProductGrid products={group.products} priorityCount={priorityCount} />
       </div>

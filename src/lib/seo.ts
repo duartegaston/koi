@@ -3,6 +3,7 @@ import "server-only";
 import type { Metadata } from "next";
 import { getServerEnv } from "@/lib/env";
 import { fromCents, toCents } from "@/lib/money";
+import { showsAsAvailable } from "@/lib/navidad";
 import { safeImageUrl } from "@/lib/safe-url";
 import {
   catalogDescription,
@@ -185,6 +186,7 @@ export function productJsonLd(product: {
   currency: string;
   stock: number;
   categoryName: string;
+  categorySlug: string;
   images: { url: string }[];
 }) {
   const site = getSiteUrl();
@@ -210,7 +212,9 @@ export function productJsonLd(product: {
           url,
           priceCurrency: product.currency,
           price,
-          availability: product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/PreOrder",
+          availability: showsAsAvailable(product.stock, product.categorySlug)
+            ? "https://schema.org/InStock"
+            : "https://schema.org/PreOrder",
           seller: { "@type": "Organization", name: siteName, url: site },
         }
       : undefined,

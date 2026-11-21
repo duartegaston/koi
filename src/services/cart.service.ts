@@ -24,6 +24,7 @@ export type CartLineView = {
   quantity: number;
   lineTotal: string;
   stock: number;
+  categorySlug: string;
   maxPerOrder: number | null;
   madeToOrder: number;
   imageUrl: string | null;
@@ -167,6 +168,7 @@ export function toCartView(cart: { id: string; expiresAt: Date }, lines: CartLin
       quantity: line.quantity,
       lineTotal: multiplyAmount(line.unitPrice, line.quantity),
       stock: line.stock,
+      categorySlug: line.categorySlug,
       maxPerOrder: line.maxPerOrder,
       madeToOrder: madeToOrderUnits(line.quantity, line.stock),
       imageUrl: line.imageUrl,

@@ -40,10 +40,13 @@ function isMercadoPagoHost(hostname: string): boolean {
 }
 
 const storedImagePath = /^\/media\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** Fotos temporales de Navidad servidas desde public/navidad/{slug}.ext */
+const navidadImagePath = /^\/navidad\/[a-z0-9]+(?:-[a-z0-9]+)*\.(?:png|jpe?g|webp)$/i;
 
-/** Acepta http(s) o una foto del bucket en /media/{uuid}. */
+/** Acepta http(s), foto del bucket en /media/{uuid}, o imagen local de Navidad. */
 export function safeImageUrl(value: string): string | null {
   if (storedImagePath.test(value)) return value;
+  if (navidadImagePath.test(value)) return value;
   try {
     const url = new URL(value);
     if (url.protocol !== "https:" && url.protocol !== "http:") return null;

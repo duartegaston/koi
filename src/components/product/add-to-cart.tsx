@@ -21,6 +21,7 @@ export function AddToCart({
   price,
   imageUrl,
   stock,
+  categorySlug,
   maxPerOrder,
 }: {
   productId: string;
@@ -29,13 +30,14 @@ export function AddToCart({
   price: string;
   imageUrl: string | null;
   stock: number;
+  categorySlug: string;
   maxPerOrder: number | null;
 }) {
   const [quantity, setQuantity] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const sending = useRef(false);
   const limit = orderQuantityLimit(maxPerOrder);
-  const note = availabilityNote(quantity, stock);
+  const note = availabilityNote(quantity, stock, categorySlug);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -52,7 +54,11 @@ export function AddToCart({
     const previous = readCart();
     beginCartWrite();
     const writtenAt = publishCart(
-      withAddedProduct(previous, { id: productId, name, slug, price, stock, imageUrl, limit }, quantity),
+      withAddedProduct(
+        previous,
+        { id: productId, name, slug, price, stock, categorySlug, imageUrl, limit },
+        quantity,
+      ),
     );
     notifyCartAdded(name);
 
