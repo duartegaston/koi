@@ -57,6 +57,13 @@
       "when": 1792163066454,
       "tag": "0007_deliveries_and_investment",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795702488393,
+      "tag": "0008_gift_card",
+      "breakpoints": true
     }
   ]
 }

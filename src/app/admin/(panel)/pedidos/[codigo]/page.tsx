@@ -5,6 +5,7 @@ import { OrderActions } from "@/components/forms/order-actions";
 import { fulfillmentLabel, formatAdminDate, orderStatusLabel, paymentMethodLabel, paymentStatusLabel } from "@/lib/admin-labels";
 import { mapLink } from "@/lib/geo";
 import { formatArs } from "@/lib/money";
+import { whatsAppLink } from "@/lib/whatsapp/link";
 import { isNavidadCategory, NAVIDAD_MADE_TO_ORDER_SUFFIX } from "@/lib/navidad";
 import { getOrderForAdmin } from "@/services/order.service";
 
@@ -101,6 +102,14 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                     : "a pedido · llega entre 7 y 10 días hábiles"}
                 </span>
               ) : null}
+              {item.giftRecipientName && item.giftRecipientContact ? (
+                <span className="mt-1 block text-xs text-muted">
+                  Para {item.giftRecipientName}
+                  {" · "}
+                  <RecipientContact name={item.giftRecipientName} contact={item.giftRecipientContact} />
+                  {item.giftMessage ? ` · ${item.giftMessage}` : null}
+                </span>
+              ) : null}
             </span>
             <span>{formatArs(item.lineTotal)}</span>
           </li>
@@ -132,5 +141,26 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
         canFulfill={order.status === "paid"}
       />
     </AdminPage>
+  );
+}
+
+function RecipientContact({ name, contact }: { name: string; contact: string }) {
+  if (/^[1-9]\d{7,14}$/.test(contact)) {
+    return (
+      <a
+        href={whatsAppLink(contact, `Hola ${name}, te escribimos de Koi por una gift card.`)}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="underline underline-offset-4"
+      >
+        {contact}
+      </a>
+    );
+  }
+
+  return (
+    <a href={`mailto:${contact}`} className="underline underline-offset-4">
+      {contact}
+    </a>
   );
 }

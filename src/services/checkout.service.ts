@@ -154,6 +154,9 @@ export async function placeOrder(input: PlaceOrderInput): Promise<ServiceResult<
           quantity: line.quantity,
           madeToOrderQuantity: line.madeToOrder,
           lineTotal: multiplyAmount(line.unitPrice, line.quantity),
+          giftRecipientName: line.customAmount ? line.giftRecipientName : null,
+          giftRecipientContact: line.customAmount ? line.giftRecipientContact : null,
+          giftMessage: line.customAmount ? line.giftMessage : null,
         })),
         tx,
       );
@@ -170,7 +173,8 @@ export async function placeOrder(input: PlaceOrderInput): Promise<ServiceResult<
     if (input.paymentMethod === "mercadopago") {
       const items = placed.lines.map((line) => ({
         id: line.productId,
-        title: line.name,
+        title:
+          line.customAmount && line.giftRecipientName ? `${line.name} para ${line.giftRecipientName}` : line.name,
         quantity: line.quantity,
         unitPrice: line.unitPrice,
       }));
@@ -264,6 +268,9 @@ export async function readCheckoutReceipt(publicCode: string): Promise<CheckoutR
           lineTotal: item.lineTotal,
           madeToOrder: item.madeToOrderQuantity,
           categorySlug: item.categorySlug,
+          giftRecipientName: item.giftRecipientName,
+          giftRecipientContact: item.giftRecipientContact,
+          giftMessage: item.giftMessage,
         })),
         fulfillmentMethod: order.fulfillmentMethod,
         addressLine: order.addressLine,

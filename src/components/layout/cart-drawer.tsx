@@ -264,7 +264,7 @@ function CartLine({
       : line.problem === "exceeds_limit"
         ? "La cantidad supera lo que podés pedir."
         : null;
-  const note = availabilityNote(quantity, line.stock, line.categorySlug);
+  const note = availabilityNote(quantity, line.stock, line.categorySlug, line.customAmount);
   const atCap = line.limit == null || quantity >= line.limit;
 
   useEffect(() => {
@@ -366,7 +366,7 @@ function CartLine({
         <ProductImage
           src={line.imageUrl}
           alt=""
-          muted={!showsAsAvailable(line.stock, line.categorySlug)}
+          muted={!showsAsAvailable(line.stock, line.categorySlug, line.customAmount)}
         />
       </Link>
       <div className="flex min-w-0 flex-col">
@@ -376,7 +376,11 @@ function CartLine({
           </Link>
           <p className="text-sm">{formatArs(multiplyAmount(line.unitPrice, quantity))}</p>
         </div>
-        <p className="mt-1 text-xs text-muted">{formatArs(line.unitPrice)}</p>
+        {line.customAmount && line.giftRecipientName ? (
+          <p className="mt-1 text-xs text-muted">Para {line.giftRecipientName}</p>
+        ) : (
+          <p className="mt-1 text-xs text-muted">{formatArs(line.unitPrice)}</p>
+        )}
         {problem ? <p className="mt-2 text-sm">{problem}</p> : null}
         {note ? (
           <p role="status" className="mt-2 text-sm">
@@ -389,31 +393,35 @@ function CartLine({
           </p>
         ) : null}
         <div className="mt-auto flex flex-wrap items-center gap-2 pt-3">
-          <button
-            type="button"
-            aria-label={`Quitar uno de ${line.name}`}
-            onClick={() => schedule(desired.current - 1)}
-            className="inline-flex h-11 w-11 items-center justify-center border border-line text-lg"
-          >
-            −
-          </button>
-          <span className="min-w-6 text-center text-sm tabular-nums" aria-live="polite" aria-label={`Cantidad: ${quantity}`}>
-            {quantity}
-          </span>
-          <button
-            type="button"
-            aria-label={`Agregar uno de ${line.name}`}
-            disabled={atCap}
-            onClick={() => schedule(desired.current + 1)}
-            className="inline-flex h-11 w-11 items-center justify-center border border-line text-lg disabled:opacity-40"
-          >
-            +
-          </button>
+          {line.customAmount ? null : (
+            <>
+              <button
+                type="button"
+                aria-label={`Quitar uno de ${line.name}`}
+                onClick={() => schedule(desired.current - 1)}
+                className="inline-flex h-11 w-11 items-center justify-center border border-line text-lg"
+              >
+                −
+              </button>
+              <span className="min-w-6 text-center text-sm tabular-nums" aria-live="polite" aria-label={`Cantidad: ${quantity}`}>
+                {quantity}
+              </span>
+              <button
+                type="button"
+                aria-label={`Agregar uno de ${line.name}`}
+                disabled={atCap}
+                onClick={() => schedule(desired.current + 1)}
+                className="inline-flex h-11 w-11 items-center justify-center border border-line text-lg disabled:opacity-40"
+              >
+                +
+              </button>
+            </>
+          )}
           <button
             type="button"
             aria-label={`Quitar ${line.name} del carrito`}
             onClick={() => schedule(0, true)}
-            className="ml-auto h-11 px-2 text-xs underline underline-offset-4"
+            className={line.customAmount ? "h-11 px-2 text-xs underline underline-offset-4" : "ml-auto h-11 px-2 text-xs underline underline-offset-4"}
           >
             Quitar
           </button>

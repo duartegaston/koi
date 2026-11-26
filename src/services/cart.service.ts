@@ -6,10 +6,12 @@ import {
   incrementCartItem,
   insertCart,
   listCartLines,
+  saveGiftCardItem,
   setCartItemQuantity,
   type CartLine,
 } from "@/data-access/cart.repository";
 import { listProductsByIds } from "@/data-access/product.repository";
+import { isAllowedGiftAmount, parseGiftCardDetails } from "@/lib/gift-card";
 import { multiplyAmount, addAmounts } from "@/lib/money";
 import { madeToOrderUnits, orderQuantityLimit } from "@/lib/order-limits";
 import { fail, type ServiceResult } from "./result";
@@ -29,6 +31,10 @@ export type CartLineView = {
   madeToOrder: number;
   imageUrl: string | null;
   problem: "unavailable" | "exceeds_limit" | null;
+  customAmount: boolean;
+  giftRecipientName: string | null;
+  giftRecipientContact: string | null;
+  giftMessage: string | null;
 };
 
 export type CartView = {
@@ -58,6 +64,12 @@ export async function addQuantity(
   cartId: string,
   productId: string,
   quantity: number,
+  giftFields?: {
+    amount: string;
+    recipientName: string;
+    recipientContact: string;
+    giftMessage: string;
+  },
 ): Promise<ServiceResult<number>> {
   if (!Number.isInteger(quantity) || quantity < 1) {
     return fail("quantity_not_allowed", "La cantidad tiene que ser un número entero.");
@@ -73,6 +85,20 @@ export async function addQuantity(
   const limit = sellableLimit(product);
   if (limit == null) {
     return fail("product_unavailable", "Ese producto no está disponible.");
+  }
+
+  if (product.customAmount) {
+    const gift = parseGiftCardDetails(
+      giftFields ?? { amount: "", recipientName: "", recipientContact: "", giftMessage: "" },
+    );
+    if (!gift.ok) return fail("gift_card_invalid", gift.message);
+    const saved = await saveGiftCardItem(cartId, productId, {
+      unitPrice: gift.value.amount,
+      recipientName: gift.value.recipientName,
+      recipientContact: gift.value.recipientContact,
+      message: gift.value.message,
+    });
+    return { ok: true, value: saved.quantity };
   }
 
   const saved = await incrementCartItem(cartId, productId, quantity);
@@ -158,8 +184,11 @@ function openCart(
 export function toCartView(cart: { id: string; expiresAt: Date }, lines: CartLine[]): CartView {
   const viewLines = lines.map((line) => {
     const limit = sellableLimit(line);
+    const giftInvalid =
+      line.customAmount &&
+      (!line.giftRecipientName || !line.giftRecipientContact || !isAllowedGiftAmount(line.unitPrice));
     const problem =
-      limit == null ? "unavailable" : line.quantity > limit ? "exceeds_limit" : null;
+      limit == null || giftInvalid ? "unavailable" : line.quantity > limit ? "exceeds_limit" : null;
     return {
       productId: line.productId,
       name: line.name,
@@ -170,9 +199,13 @@ export function toCartView(cart: { id: string; expiresAt: Date }, lines: CartLin
       stock: line.stock,
       categorySlug: line.categorySlug,
       maxPerOrder: line.maxPerOrder,
-      madeToOrder: madeToOrderUnits(line.quantity, line.stock),
+      madeToOrder: line.customAmount ? 0 : madeToOrderUnits(line.quantity, line.stock),
       imageUrl: line.imageUrl,
       problem,
+      customAmount: line.customAmount,
+      giftRecipientName: line.giftRecipientName,
+      giftRecipientContact: line.giftRecipientContact,
+      giftMessage: line.giftMessage,
     } satisfies CartLineView;
   });
 

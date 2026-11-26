@@ -22,7 +22,9 @@ function subscribe(listener: () => void) {
 }
 
 export function cartKey(cart: CartSnapshot) {
-  return `${cart.lines.map((line) => `${line.productId}:${line.quantity}`).join("|")}@${cart.subtotal}`;
+  return `${cart.lines
+    .map((line) => `${line.productId}:${line.quantity}:${line.unitPrice}:${line.giftRecipientName ?? ""}`)
+    .join("|")}@${cart.subtotal}`;
 }
 
 function summarize(lines: CartLineSnapshot[]): CartSnapshot {
@@ -130,23 +132,29 @@ export function withAddedProduct(
     categorySlug: string | null;
     imageUrl: string | null;
     limit: number | null;
+    customAmount?: boolean;
+    giftRecipientName?: string | null;
   },
   quantity: number,
 ): CartSnapshot {
   const existing = cart.lines.find((line) => line.productId === product.id);
-  const nextQuantity = (existing && existing.quantity > 0 ? existing.quantity : 0) + quantity;
+  const customAmount = product.customAmount ?? existing?.customAmount ?? false;
+  const nextQuantity = customAmount ? quantity : (existing && existing.quantity > 0 ? existing.quantity : 0) + quantity;
+  const unitPrice = customAmount ? product.price : (existing?.unitPrice ?? product.price);
   const nextLine: CartLineSnapshot = {
     productId: product.id,
     name: existing?.name ?? product.name,
     slug: existing?.slug ?? product.slug,
-    unitPrice: existing?.unitPrice ?? product.price,
+    unitPrice,
     quantity: nextQuantity,
-    lineTotal: multiplyAmount(existing?.unitPrice ?? product.price, nextQuantity),
+    lineTotal: multiplyAmount(unitPrice, nextQuantity),
     stock: product.stock,
     categorySlug: existing?.categorySlug ?? product.categorySlug,
     imageUrl: existing?.imageUrl ?? product.imageUrl,
     problem: null,
     limit: existing?.limit ?? product.limit,
+    customAmount,
+    giftRecipientName: customAmount ? (product.giftRecipientName ?? null) : (existing?.giftRecipientName ?? null),
   };
   const lines = existing
     ? cart.lines.map((line) => (line.productId === product.id ? nextLine : line))

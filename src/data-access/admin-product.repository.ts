@@ -24,6 +24,7 @@ export type AdminProduct = {
   maxPerOrder: number | null;
   isFeatured: boolean;
   isActive: boolean;
+  customAmount: boolean;
   categoryId: string;
   categoryName: string;
   images: AdminImage[];
@@ -44,6 +45,7 @@ const productColumns = {
   maxPerOrder: products.maxPerOrder,
   isFeatured: products.isFeatured,
   isActive: products.isActive,
+  customAmount: products.customAmount,
   categoryId: products.categoryId,
   categoryName: categories.name,
 };
@@ -75,7 +77,7 @@ export async function listManualOrderProducts(db?: DbExecutor) {
       isActive: products.isActive,
     })
     .from(products)
-    .where(isNull(products.deletedAt))
+    .where(and(isNull(products.deletedAt), eq(products.customAmount, false)))
     .orderBy(desc(products.stock), asc(products.name));
 }
 
@@ -89,7 +91,7 @@ export async function listStockProducts(db?: DbExecutor) {
       isActive: products.isActive,
     })
     .from(products)
-    .where(isNull(products.deletedAt))
+    .where(and(isNull(products.deletedAt), eq(products.customAmount, false)))
     .orderBy(desc(products.stock), asc(products.name));
 }
 
@@ -100,7 +102,7 @@ export async function sumStockRetailValue(db?: DbExecutor): Promise<string> {
       value: sql<string>`coalesce(sum(${products.stock} * ${products.price}), 0)`,
     })
     .from(products)
-    .where(isNull(products.deletedAt));
+    .where(and(isNull(products.deletedAt), eq(products.customAmount, false)));
   return row?.value ?? "0";
 }
 
@@ -108,7 +110,14 @@ export async function listLowStockProducts(threshold: number, limit: number, db?
   return executor(db)
     .select({ id: products.id, name: products.name, stock: products.stock })
     .from(products)
-    .where(and(isNull(products.deletedAt), eq(products.isActive, true), lte(products.stock, threshold)))
+    .where(
+      and(
+        isNull(products.deletedAt),
+        eq(products.isActive, true),
+        eq(products.customAmount, false),
+        lte(products.stock, threshold),
+      ),
+    )
     .orderBy(asc(products.stock), asc(products.name))
     .limit(limit);
 }

@@ -17,11 +17,11 @@ export const metadata: Metadata = pageMetadata({
 export default async function ShopPage() {
   const products = await getProducts();
   const inStock = groupByCategory(
-    products.filter((product) => showsAsAvailable(product.stock, product.categorySlug)),
+    products.filter((product) => showsAsAvailable(product.stock, product.categorySlug, product.customAmount)),
     "stock",
   );
   const madeToOrder = groupByCategory(
-    products.filter((product) => !showsAsAvailable(product.stock, product.categorySlug)),
+    products.filter((product) => !showsAsAvailable(product.stock, product.categorySlug, product.customAmount)),
     "pedido",
   );
 

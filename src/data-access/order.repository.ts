@@ -42,6 +42,9 @@ export type NewOrderItemInput = {
   quantity: number;
   madeToOrderQuantity: number;
   lineTotal: string;
+  giftRecipientName?: string | null;
+  giftRecipientContact?: string | null;
+  giftMessage?: string | null;
 };
 
 export type OrderItemRecord = NewOrderItemInput & { id: string; categorySlug: string | null };
@@ -132,7 +135,20 @@ export async function insertOrderItems(orderId: string, items: NewOrderItemInput
 
   return executor(db)
     .insert(orderItems)
-    .values(items.map((item) => ({ orderId, ...item })))
+    .values(
+      items.map((item) => ({
+        orderId,
+        productId: item.productId,
+        productName: item.productName,
+        unitPrice: item.unitPrice,
+        quantity: item.quantity,
+        madeToOrderQuantity: item.madeToOrderQuantity,
+        lineTotal: item.lineTotal,
+        giftRecipientName: item.giftRecipientName ?? null,
+        giftRecipientContact: item.giftRecipientContact ?? null,
+        giftMessage: item.giftMessage ?? null,
+      })),
+    )
     .returning({ id: orderItems.id, productId: orderItems.productId, quantity: orderItems.quantity });
 }
 
@@ -229,6 +245,9 @@ async function withItems(
       quantity: orderItems.quantity,
       madeToOrderQuantity: orderItems.madeToOrderQuantity,
       lineTotal: orderItems.lineTotal,
+      giftRecipientName: orderItems.giftRecipientName,
+      giftRecipientContact: orderItems.giftRecipientContact,
+      giftMessage: orderItems.giftMessage,
       categorySlug: categories.slug,
     })
     .from(orderItems)

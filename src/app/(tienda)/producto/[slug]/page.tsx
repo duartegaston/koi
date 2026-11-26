@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AddToCart } from "@/components/product/add-to-cart";
+import { GiftCardForm } from "@/components/product/gift-card-form";
 import { ProductGallery } from "@/components/product/gallery";
 import { JsonLd } from "@/components/ui/json-ld";
 import { getProduct } from "@/lib/catalog";
@@ -35,7 +36,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const { slug } = await params;
   const product = await getProduct(slug);
   if (!product) notFound();
-  const available = showsAsAvailable(product.stock, product.categorySlug);
+  const available = showsAsAvailable(product.stock, product.categorySlug, product.customAmount);
   const navidad = isNavidadCategory(product.categorySlug);
 
   return (
@@ -54,26 +55,43 @@ export default async function ProductPage({ params }: ProductPageProps) {
           {product.categoryName}
         </Link>
         <h1 className="mt-3 text-4xl md:text-6xl">{formatProductName(product.name)}</h1>
-        <p className="mt-4 font-label text-xl tabular-nums">{formatArs(product.price)}</p>
-        <p className="mt-6 max-w-prose text-base leading-relaxed whitespace-pre-wrap text-muted">{product.description}</p>
-        <p className="mt-6 text-sm">
-          {navidad
-            ? NAVIDAD_ORDER_NOTE
-            : product.stock > 0
-              ? `Hay ${product.stock === 1 ? "1 unidad" : `${product.stock} unidades`} en stock.`
-              : "Sin stock."}
+        <p className="mt-4 font-label text-xl tabular-nums">
+          {product.customAmount ? "Elegí el monto" : formatArs(product.price)}
         </p>
-        {product.maxPerOrder ? <p className="mt-1 text-sm text-muted">Máximo {product.maxPerOrder} por pedido.</p> : null}
-        <AddToCart
-          productId={product.id}
-          name={product.name}
-          slug={product.slug}
-          price={product.price}
-          imageUrl={product.images[0]?.url ?? null}
-          stock={product.stock}
-          categorySlug={product.categorySlug}
-          maxPerOrder={product.maxPerOrder}
-        />
+        <p className="mt-6 max-w-prose text-base leading-relaxed whitespace-pre-wrap text-muted">{product.description}</p>
+        {product.customAmount ? null : (
+          <p className="mt-6 text-sm">
+            {navidad
+              ? NAVIDAD_ORDER_NOTE
+              : product.stock > 0
+                ? `Hay ${product.stock === 1 ? "1 unidad" : `${product.stock} unidades`} en stock.`
+                : "Sin stock."}
+          </p>
+        )}
+        {!product.customAmount && product.maxPerOrder ? (
+          <p className="mt-1 text-sm text-muted">Máximo {product.maxPerOrder} por pedido.</p>
+        ) : null}
+        {product.customAmount ? (
+          <GiftCardForm
+            productId={product.id}
+            name={product.name}
+            slug={product.slug}
+            imageUrl={product.images[0]?.url ?? null}
+            stock={product.stock}
+            categorySlug={product.categorySlug}
+          />
+        ) : (
+          <AddToCart
+            productId={product.id}
+            name={product.name}
+            slug={product.slug}
+            price={product.price}
+            imageUrl={product.images[0]?.url ?? null}
+            stock={product.stock}
+            categorySlug={product.categorySlug}
+            maxPerOrder={product.maxPerOrder}
+          />
+        )}
       </div>
     </article>
   );

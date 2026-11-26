@@ -34,7 +34,8 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
 
   const products = (await getProducts(slug)).toSorted(
     (a, b) =>
-      Number(showsAsAvailable(b.stock, b.categorySlug)) - Number(showsAsAvailable(a.stock, a.categorySlug)),
+      Number(showsAsAvailable(b.stock, b.categorySlug, b.customAmount)) -
+      Number(showsAsAvailable(a.stock, a.categorySlug, a.customAmount)),
   );
   const description =
     category.description ?? (isNavidadCategory(category.slug) ? NAVIDAD_CATEGORY_DESCRIPTION : null);

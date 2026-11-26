@@ -37,6 +37,8 @@ export function toSnapshot(cart: CartView): CartSnapshot {
         imageUrl: line.imageUrl,
         problem: line.problem,
         limit: lineLimit(line),
+        customAmount: line.customAmount,
+        giftRecipientName: line.giftRecipientName,
       }),
     ),
   };

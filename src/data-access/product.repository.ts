@@ -22,6 +22,7 @@ export type CatalogProduct = {
   stock: number;
   maxPerOrder: number | null;
   isFeatured: boolean;
+  customAmount: boolean;
   categoryName: string;
   categorySlug: string;
   images: CatalogImage[];
@@ -35,6 +36,7 @@ export type ProductStock = {
   maxPerOrder: number | null;
   isActive: boolean;
   deletedAt: Date | null;
+  customAmount: boolean;
 };
 
 export type ProductListFilter = {
@@ -52,6 +54,7 @@ const productColumns = {
   stock: products.stock,
   maxPerOrder: products.maxPerOrder,
   isFeatured: products.isFeatured,
+  customAmount: products.customAmount,
   categoryName: categories.name,
   categorySlug: categories.slug,
 };
@@ -154,6 +157,7 @@ const productStockColumns = {
   maxPerOrder: products.maxPerOrder,
   isActive: products.isActive,
   deletedAt: products.deletedAt,
+  customAmount: products.customAmount,
 };
 
 export async function listProductsByIds(ids: string[], db?: DbExecutor): Promise<ProductStock[]> {

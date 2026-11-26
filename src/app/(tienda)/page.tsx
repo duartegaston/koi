@@ -21,9 +21,11 @@ export const metadata: Metadata = pageMetadata({
 
 const ticker = ["Chocolates Rapanui", "Envío en Posadas"];
 
-function inStockFirst<T extends { stock: number; categorySlug: string }>(products: T[]) {
+function inStockFirst<T extends { stock: number; categorySlug: string; customAmount: boolean }>(products: T[]) {
   return [...products].sort(
-    (a, b) => Number(!showsAsAvailable(a.stock, a.categorySlug)) - Number(!showsAsAvailable(b.stock, b.categorySlug)),
+    (a, b) =>
+      Number(!showsAsAvailable(a.stock, a.categorySlug, a.customAmount)) -
+      Number(!showsAsAvailable(b.stock, b.categorySlug, b.customAmount)),
   );
 }
 

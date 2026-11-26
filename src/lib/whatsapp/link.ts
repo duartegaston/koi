@@ -39,6 +39,9 @@ export type OrderWhatsAppInput = {
     lineTotal: string;
     madeToOrder: number;
     categorySlug?: string | null;
+    giftRecipientName?: string | null;
+    giftRecipientContact?: string | null;
+    giftMessage?: string | null;
   }>;
   fulfillmentMethod: "motorcycle" | "pickup";
   addressLine: string | null;
@@ -65,7 +68,11 @@ export function orderWhatsAppText(order: OrderWhatsAppInput): string {
             ? ` (${line.madeToOrder} ${NAVIDAD_MADE_TO_ORDER_SUFFIX})`
             : ` (${line.madeToOrder} a pedido, llega entre 7 y 10 días hábiles)`
           : "";
-      return `- ${line.quantity} x ${line.name}: $${line.lineTotal}${madeToOrder}`;
+      const gift =
+        line.giftRecipientName && line.giftRecipientContact
+          ? ` Para ${line.giftRecipientName} (${line.giftRecipientContact})${line.giftMessage ? `. Mensaje: ${line.giftMessage}` : ""}`
+          : "";
+      return `- ${line.quantity} x ${line.name}: $${line.lineTotal}${madeToOrder}${gift}`;
     }),
     "",
   ];

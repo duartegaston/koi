@@ -16,7 +16,12 @@ export async function addToCart(formData: FormData): Promise<CartActionState> {
   }
 
   const cartId = await ensureOpenCartId();
-  const updated = await addQuantity(cartId, parsed.data.productId, parsed.data.quantity);
+  const updated = await addQuantity(cartId, parsed.data.productId, parsed.data.quantity, {
+    amount: String(formData.get("amount") ?? ""),
+    recipientName: String(formData.get("recipientName") ?? ""),
+    recipientContact: String(formData.get("recipientContact") ?? ""),
+    giftMessage: String(formData.get("giftMessage") ?? ""),
+  });
   if (!updated.ok) {
     return { status: "error", message: updated.message };
   }

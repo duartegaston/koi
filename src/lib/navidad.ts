@@ -18,12 +18,21 @@ export function isNavidadCategory(slug: string | null | undefined): boolean {
   return slug === NAVIDAD_CATEGORY_SLUG;
 }
 
-/** Navidad se muestra como disponible aunque el stock real sea 0. */
-export function showsAsAvailable(stock: number, categorySlug: string | null | undefined): boolean {
-  return stock > 0 || isNavidadCategory(categorySlug);
+/** Navidad y las gift cards se muestran como disponibles aunque el stock real sea 0. */
+export function showsAsAvailable(
+  stock: number,
+  categorySlug: string | null | undefined,
+  customAmount = false,
+): boolean {
+  return customAmount || stock > 0 || isNavidadCategory(categorySlug);
 }
 
-export function productAvailabilityLabel(stock: number, categorySlug: string | null | undefined): string {
+export function productAvailabilityLabel(
+  stock: number,
+  categorySlug: string | null | undefined,
+  customAmount = false,
+): string {
+  if (customAmount) return "Para regalar";
   if (isNavidadCategory(categorySlug)) return NAVIDAD_CARD_LABEL;
   return stock > 0 ? "En stock" : "A pedido · 7 a 10 días hábiles";
 }

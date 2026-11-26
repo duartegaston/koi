@@ -27,6 +27,10 @@ export type CartLine = {
   deletedAt: Date | null;
   categorySlug: string;
   imageUrl: string | null;
+  customAmount: boolean;
+  giftRecipientName: string | null;
+  giftRecipientContact: string | null;
+  giftMessage: string | null;
 };
 
 export async function insertCart(expiresAt: Date, db?: DbExecutor): Promise<CartRecord> {
@@ -62,13 +66,17 @@ export async function listCartLines(cartId: string, db?: DbExecutor): Promise<Ca
       productId: products.id,
       name: products.name,
       slug: products.slug,
-      unitPrice: products.price,
+      unitPrice: sql<string>`coalesce(${cartItems.unitPrice}, ${products.price})::text`,
       quantity: cartItems.quantity,
       stock: products.stock,
       maxPerOrder: products.maxPerOrder,
       isActive: products.isActive,
       deletedAt: products.deletedAt,
       categorySlug: categories.slug,
+      customAmount: products.customAmount,
+      giftRecipientName: cartItems.giftRecipientName,
+      giftRecipientContact: cartItems.giftRecipientContact,
+      giftMessage: cartItems.giftMessage,
     })
     .from(cartItems)
     .innerJoin(products, eq(products.id, cartItems.productId))
@@ -126,6 +134,45 @@ export async function incrementCartItem(
       })
       .returning({ quantity: cartItems.quantity }),
     "No se pudo guardar el ítem del carrito",
+  );
+}
+
+export async function saveGiftCardItem(
+  cartId: string,
+  productId: string,
+  gift: {
+    unitPrice: string;
+    recipientName: string;
+    recipientContact: string;
+    message: string | null;
+  },
+  db?: DbExecutor,
+) {
+  return firstRow(
+    await executor(db)
+      .insert(cartItems)
+      .values({
+        cartId,
+        productId,
+        quantity: 1,
+        unitPrice: gift.unitPrice,
+        giftRecipientName: gift.recipientName,
+        giftRecipientContact: gift.recipientContact,
+        giftMessage: gift.message,
+      })
+      .onConflictDoUpdate({
+        target: [cartItems.cartId, cartItems.productId],
+        set: {
+          quantity: 1,
+          unitPrice: gift.unitPrice,
+          giftRecipientName: gift.recipientName,
+          giftRecipientContact: gift.recipientContact,
+          giftMessage: gift.message,
+          updatedAt: new Date(),
+        },
+      })
+      .returning({ quantity: cartItems.quantity }),
+    "No se pudo guardar la gift card",
   );
 }
 

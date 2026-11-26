@@ -17,7 +17,9 @@ export function availabilityNote(
   quantity: number,
   stock: number,
   categorySlug?: string | null,
+  customAmount = false,
 ): string | null {
+  if (customAmount) return null;
   if (isNavidadCategory(categorySlug)) {
     return quantity > 0 ? NAVIDAD_ORDER_NOTE : null;
   }

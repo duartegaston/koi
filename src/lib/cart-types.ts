@@ -10,6 +10,8 @@ export type CartLineSnapshot = {
   imageUrl: string | null;
   problem: "unavailable" | "exceeds_limit" | null;
   limit: number | null;
+  customAmount: boolean;
+  giftRecipientName: string | null;
 };
 
 export type CartSnapshot = {

@@ -13,7 +13,7 @@ import {
   type PaymentMethod,
 } from "@/data-access/order.repository";
 import { findPaymentByOrderId, insertPayment, setPaymentStatus } from "@/data-access/payment.repository";
-import { decrementStock, incrementStock, lockProductsByIds } from "@/data-access/product.repository";
+import { decrementStock, incrementStock, listProductsByIds, lockProductsByIds } from "@/data-access/product.repository";
 import { madeToOrderUnits, orderQuantityLimit } from "@/lib/order-limits";
 import { fromCents, multiplyAmount, toCents } from "@/lib/money";
 import { fail, type ServiceFailure, type ServiceResult } from "./result";
@@ -140,7 +140,12 @@ export async function cancelOrder(
       }
 
       if (hadStockDeducted) {
+        const skipStock = await customAmountIds(
+          order.items.map((item) => item.productId),
+          tx,
+        );
         for (const item of order.items) {
+          if (skipStock.has(item.productId)) continue;
           const restoreQty = item.quantity - item.madeToOrderQuantity;
           if (restoreQty <= 0) continue;
           const updated = await incrementStock(item.productId, restoreQty, tx);
@@ -210,6 +215,9 @@ export async function recordManualPickupOrder(
         const product = byId.get(line.productId);
         if (!product || product.deletedAt) {
           throw new ApprovalRejected("product_missing", "Uno de los productos ya no está en el catálogo.");
+        }
+        if (product.customAmount) {
+          throw new ApprovalRejected("custom_amount", `${product.name} tiene el monto a elección. Se carga desde la tienda.`);
         }
         const limit = orderQuantityLimit(product.maxPerOrder);
         if (line.quantity > limit) {
@@ -288,7 +296,12 @@ async function loadPendingOrder(publicCode: string): Promise<ServiceResult<Order
 }
 
 async function settlePendingOrder(order: OrderRecord, tx: DbTransaction): Promise<ApprovedOrder> {
+  const skipStock = await customAmountIds(
+    order.items.map((item) => item.productId),
+    tx,
+  );
   for (const item of order.items) {
+    if (skipStock.has(item.productId)) continue;
     const updated = await decrementStock(item.productId, item.quantity, tx);
     if (!updated) {
       throw new ApprovalRejected("product_missing", `No encontramos ${item.productName} para descontar el stock.`);
@@ -300,6 +313,11 @@ async function settlePendingOrder(order: OrderRecord, tx: DbTransaction): Promis
     throw new ApprovalRejected("order_not_pending", "Ese pedido ya no está pendiente de aprobación.");
   }
   return { publicCode: marked.publicCode, status: "paid" };
+}
+
+async function customAmountIds(ids: string[], tx: DbTransaction): Promise<Set<string>> {
+  const products = await listProductsByIds(ids, tx);
+  return new Set(products.filter((product) => product.customAmount).map((product) => product.id));
 }
 
 function rejectionOrThrow(error: unknown): ServiceFailure {

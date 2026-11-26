@@ -2,6 +2,7 @@ import "server-only";
 
 import type { Metadata } from "next";
 import { getServerEnv } from "@/lib/env";
+import { giftCardMaxAmount, giftCardMinAmount } from "@/lib/gift-card";
 import { fromCents, toCents } from "@/lib/money";
 import { showsAsAvailable } from "@/lib/navidad";
 import { safeImageUrl } from "@/lib/safe-url";
@@ -187,6 +188,7 @@ export function productJsonLd(product: {
   stock: number;
   categoryName: string;
   categorySlug: string;
+  customAmount?: boolean;
   images: { url: string }[];
 }) {
   const site = getSiteUrl();
@@ -196,6 +198,10 @@ export function productJsonLd(product: {
     site,
   );
   const price = schemaPrice(product.price);
+  const available = showsAsAvailable(product.stock, product.categorySlug, product.customAmount)
+    ? "https://schema.org/InStock"
+    : "https://schema.org/PreOrder";
+  const seller = { "@type": "Organization", name: siteName, url: site };
 
   return {
     "@context": "https://schema.org",
@@ -206,18 +212,26 @@ export function productJsonLd(product: {
     category: product.categoryName,
     image: images.length > 0 ? images : undefined,
     brand: { "@type": "Brand", name: siteName },
-    offers: price
+    offers: product.customAmount
       ? {
-          "@type": "Offer",
+          "@type": "AggregateOffer",
           url,
           priceCurrency: product.currency,
-          price,
-          availability: showsAsAvailable(product.stock, product.categorySlug)
-            ? "https://schema.org/InStock"
-            : "https://schema.org/PreOrder",
-          seller: { "@type": "Organization", name: siteName, url: site },
+          lowPrice: giftCardMinAmount,
+          highPrice: giftCardMaxAmount,
+          availability: available,
+          seller,
         }
-      : undefined,
+      : price
+        ? {
+            "@type": "Offer",
+            url,
+            priceCurrency: product.currency,
+            price,
+            availability: available,
+            seller,
+          }
+        : undefined,
   };
 }
 

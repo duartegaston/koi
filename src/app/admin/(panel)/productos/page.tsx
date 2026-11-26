@@ -39,10 +39,10 @@ export default async function ProductsPage() {
                     <span className="mt-1 block text-sm text-muted">
                       {product.categoryName}
                       {product.isActive ? "" : " · Oculto"}
-                      {product.stock === 0 ? " · Sin stock" : ` · Stock ${product.stock}`}
+                      {product.customAmount ? "" : product.stock === 0 ? " · Sin stock" : ` · Stock ${product.stock}`}
                     </span>
                   </span>
-                  <span className="text-sm">{formatArs(product.price)}</span>
+                  <span className="text-sm">{product.customAmount ? "Monto a elección" : formatArs(product.price)}</span>
                 </Link>
               </li>
             );

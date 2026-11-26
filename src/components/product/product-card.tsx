@@ -11,6 +11,7 @@ type CardProduct = {
   price: string;
   stock: number;
   categorySlug: string;
+  customAmount: boolean;
   images: { url: string }[];
 };
 
@@ -22,7 +23,7 @@ export function ProductCard({
   priority?: boolean;
 }) {
   const image = product.images[0];
-  const available = showsAsAvailable(product.stock, product.categorySlug);
+  const available = showsAsAvailable(product.stock, product.categorySlug, product.customAmount);
 
   return (
     <Link href={`/producto/${product.slug}`} className="group block">
@@ -32,8 +33,12 @@ export function ProductCard({
       <h3 className="mt-4 text-center font-display text-xl leading-snug">
         {formatProductName(product.name)}
       </h3>
-      <p className="mt-1 text-center font-label text-base tabular-nums">{formatArs(product.price)}</p>
-      <p className="mt-1 text-center text-sm">{productAvailabilityLabel(product.stock, product.categorySlug)}</p>
+      <p className="mt-1 text-center font-label text-base tabular-nums">
+        {product.customAmount ? "Elegí el monto" : formatArs(product.price)}
+      </p>
+      <p className="mt-1 text-center text-sm">
+        {productAvailabilityLabel(product.stock, product.categorySlug, product.customAmount)}
+      </p>
     </Link>
   );
 }

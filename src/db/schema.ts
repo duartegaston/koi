@@ -141,6 +141,8 @@ export const products = pgTable(
     maxPerOrder: integer("max_per_order"),
     isFeatured: boolean("is_featured").notNull().default(false),
     isActive: boolean("is_active").notNull().default(true),
+    /** El cliente elige el monto. `price` no es el precio de venta. */
+    customAmount: boolean("custom_amount").notNull().default(false),
     ...timestamps(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
@@ -198,12 +200,32 @@ export const cartItems = pgTable(
       .notNull()
       .references(() => products.id, { onDelete: "restrict" }),
     quantity: integer("quantity").notNull(),
+    /** Precio elegido por el cliente. Null usa el precio del producto. */
+    unitPrice: numeric("unit_price", { precision: 12, scale: 2 }),
+    giftRecipientName: varchar("gift_recipient_name", { length: 120 }),
+    giftRecipientContact: varchar("gift_recipient_contact", { length: 254 }),
+    giftMessage: varchar("gift_message", { length: 500 }),
     ...timestamps(),
   },
   (table) => [
     uniqueIndex("cart_items_cart_product_idx").on(table.cartId, table.productId),
     index("cart_items_product_id_idx").on(table.productId),
     check("cart_items_quantity_check", sql`${table.quantity} > 0`),
+    check(
+      "cart_items_unit_price_check",
+      sql`${table.unitPrice} IS NULL OR (${table.unitPrice} > 0 AND ${table.unitPrice} <= 9999999.99)`,
+    ),
+    check(
+      "cart_items_gift_check",
+      sql`(
+        ${table.giftRecipientName} IS NULL
+        AND ${table.giftRecipientContact} IS NULL
+        AND ${table.giftMessage} IS NULL
+      ) OR (
+        ${table.giftRecipientName} IS NOT NULL
+        AND ${table.giftRecipientContact} IS NOT NULL
+      )`,
+    ),
   ],
 );
 
@@ -315,6 +337,9 @@ export const orderItems = pgTable(
     quantity: integer("quantity").notNull(),
     madeToOrderQuantity: integer("made_to_order_quantity").notNull().default(0),
     lineTotal: money("line_total"),
+    giftRecipientName: varchar("gift_recipient_name", { length: 120 }),
+    giftRecipientContact: varchar("gift_recipient_contact", { length: 254 }),
+    giftMessage: varchar("gift_message", { length: 500 }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
@@ -327,6 +352,17 @@ export const orderItems = pgTable(
     ),
     check("order_items_unit_price_check", sql`${table.unitPrice} >= 0`),
     check("order_items_line_total_check", sql`${table.lineTotal} = ${table.unitPrice} * ${table.quantity}`),
+    check(
+      "order_items_gift_check",
+      sql`(
+        ${table.giftRecipientName} IS NULL
+        AND ${table.giftRecipientContact} IS NULL
+        AND ${table.giftMessage} IS NULL
+      ) OR (
+        ${table.giftRecipientName} IS NOT NULL
+        AND ${table.giftRecipientContact} IS NOT NULL
+      )`,
+    ),
   ],
 );
 

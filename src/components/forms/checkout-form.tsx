@@ -314,10 +314,13 @@ function CheckoutFields({
             <li key={line.productId} className="flex items-start justify-between gap-4 py-3 text-sm">
               <span>
                 {line.quantity} × {line.name}
+                {line.giftRecipientName ? (
+                  <span className="mt-1 block text-xs text-muted">Para {line.giftRecipientName}</span>
+                ) : null}
                 {line.problem ? <span className="mt-1 block text-xs">Revisá esta línea en el carrito.</span> : null}
-                {availabilityNote(line.quantity, line.stock, line.categorySlug) ? (
+                {availabilityNote(line.quantity, line.stock, line.categorySlug, line.customAmount) ? (
                   <span className="mt-1 block text-xs">
-                    {availabilityNote(line.quantity, line.stock, line.categorySlug)}
+                    {availabilityNote(line.quantity, line.stock, line.categorySlug, line.customAmount)}
                   </span>
                 ) : null}
               </span>
